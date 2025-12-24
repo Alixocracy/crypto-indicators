@@ -169,14 +169,32 @@ export const useMarketData = (
       }
 
       // Transform candles response
-      const candlesData: CandleData[] = (candlesResponse?.candles || []).map((c: Record<string, unknown>) => ({
-        timestamp: (c.timestamp as number) * 1000 || Date.now(),
-        open: c.open as number || 0,
-        high: c.high as number || 0,
-        low: c.low as number || 0,
-        close: c.close as number || 0,
-        volume: c.volume as number || 0,
-      }));
+      const rawCandles = candlesResponse?.candles || [];
+      console.log('Raw candles from API (first 3):', rawCandles.slice(0, 3));
+      
+      const candlesData: CandleData[] = rawCandles.map((c: Record<string, unknown>) => {
+        // Check if timestamp is in seconds or milliseconds
+        const ts = c.timestamp as number;
+        // If timestamp is less than a reasonable millisecond value (year 2001), it's in seconds
+        const timestamp = ts < 1000000000000 ? ts * 1000 : ts;
+        
+        return {
+          timestamp,
+          open: c.open as number || 0,
+          high: c.high as number || 0,
+          low: c.low as number || 0,
+          close: c.close as number || 0,
+          volume: c.volume as number || 0,
+        };
+      });
+
+      // Sort by timestamp to ensure chronological order
+      candlesData.sort((a, b) => a.timestamp - b.timestamp);
+      
+      console.log('Processed candles (first 3):', candlesData.slice(0, 3).map(c => ({
+        date: new Date(c.timestamp).toISOString(),
+        timestamp: c.timestamp
+      })));
 
       setCandles(candlesData);
 
