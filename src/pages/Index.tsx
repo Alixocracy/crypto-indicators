@@ -79,8 +79,8 @@ const Index = () => {
 
           {/* Center - Chart + Parameters */}
           <div className="col-span-12 lg:col-span-5 space-y-4">
-            <div className="gradient-border rounded-xl p-4 h-[450px] relative animate-fade-in" style={{ animationDelay: '0.15s' }}>
-              <div className="flex items-center justify-between mb-3">
+            <div className="gradient-border rounded-xl p-3 h-[450px] flex flex-col animate-fade-in" style={{ animationDelay: '0.15s' }}>
+              <div className="flex items-center justify-between mb-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <h2 className="font-semibold text-foreground text-sm">{settings.coin}/USDT</h2>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
@@ -100,14 +100,14 @@ const Index = () => {
               </div>
               
               {isLoading ? (
-                <div className="h-[calc(100%-2.5rem)] flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center">
                   <div className="text-center">
                     <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
                     <p className="text-xs text-muted-foreground">Loading...</p>
                   </div>
                 </div>
               ) : (
-                <div className="h-[calc(100%-2.5rem)]">
+                <div className="flex-1 min-h-0">
                   <CandlestickChart 
                     candles={candles}
                     selectedIndicators={selectedIndicators}
