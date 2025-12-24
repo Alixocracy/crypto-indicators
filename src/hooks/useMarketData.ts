@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CandleData, MarketSettings, INDICATOR_CONFIGS } from '@/types/indicators';
+import { MarketSettings } from '@/types/indicators';
+import { calculateIndicators, CandleData } from '@/utils/indicators';
 import { toast } from 'sonner';
 
 // Read env vars lazily to ensure they're available after Vite processes them
@@ -19,104 +20,6 @@ const exchangeMap: Record<string, string> = {
   'CoinGecko': 'coingecko',
   'KuCoin': 'kucoin',
   'GateIO': 'gateio',
-};
-
-// Build indicator config for API
-const buildIndicatorConfig = (
-  indicatorId: string,
-  parameters: Record<string, number>
-) => {
-  const config = INDICATOR_CONFIGS.find(c => c.id === indicatorId);
-  if (!config) return null;
-
-  const apiConfig: Record<string, unknown> = {
-    name: config.apiName,
-  };
-
-  // Add parameters based on indicator type
-  switch (indicatorId) {
-    case 'rsi':
-    case 'sma':
-    case 'ema':
-    case 'adx':
-    case 'atr':
-    case 'stochrsi':
-      apiConfig.period = parameters.period || 14;
-      break;
-    case 'macd':
-      apiConfig.fast = parameters.fastPeriod || 12;
-      apiConfig.slow = parameters.slowPeriod || 26;
-      apiConfig.signal = parameters.signalPeriod || 9;
-      break;
-    case 'bbands':
-      apiConfig.period = parameters.period || 20;
-      apiConfig.stddev = parameters.stdDev || 2;
-      break;
-    case 'stoch':
-      apiConfig.kPeriod = parameters.kPeriod || 14;
-      apiConfig.dPeriod = parameters.dPeriod || 3;
-      apiConfig.smoothing = 3;
-      break;
-    case 'support_resistance':
-      apiConfig.lookback = 20;
-      break;
-  }
-
-  return apiConfig;
-};
-
-// Transform API response to our format
-const transformIndicatorData = (
-  apiResponse: Record<string, unknown>
-): Record<string, Record<string, number[]>> => {
-  const result: Record<string, Record<string, number[]>> = {};
-
-  Object.entries(apiResponse).forEach(([key, data]) => {
-    const lowerKey = key.toLowerCase();
-    
-    if (typeof data === 'object' && data !== null) {
-      const dataObj = data as Record<string, unknown>;
-      
-      // Handle different indicator response formats
-      if (lowerKey === 'rsi' && Array.isArray(dataObj.values)) {
-        result.rsi = { value: dataObj.values as number[] };
-      } else if (lowerKey === 'sma' && Array.isArray(dataObj.values)) {
-        result.sma = { value: dataObj.values as number[] };
-      } else if (lowerKey === 'ema' && Array.isArray(dataObj.values)) {
-        result.ema = { value: dataObj.values as number[] };
-      } else if (lowerKey === 'macd') {
-        result.macd = {
-          macd: (dataObj.macd || dataObj.values) as number[] || [],
-          signal: (dataObj.signal || []) as number[],
-          histogram: (dataObj.histogram || []) as number[],
-        };
-      } else if (lowerKey === 'bbands') {
-        result.bbands = {
-          upper: (dataObj.upper || []) as number[],
-          middle: (dataObj.middle || []) as number[],
-          lower: (dataObj.lower || []) as number[],
-        };
-      } else if (lowerKey === 'adx' && Array.isArray(dataObj.values)) {
-        result.adx = { value: dataObj.values as number[] };
-      } else if (lowerKey === 'atr' && Array.isArray(dataObj.values)) {
-        result.atr = { value: dataObj.values as number[] };
-      } else if (lowerKey === 'obv' && Array.isArray(dataObj.values)) {
-        result.obv = { value: dataObj.values as number[] };
-      } else if (lowerKey === 'stoch') {
-        result.stoch = {
-          k: (dataObj.k || []) as number[],
-          d: (dataObj.d || []) as number[],
-        };
-      } else if (lowerKey === 'stochrsi') {
-        result.stochrsi = {
-          k: (dataObj.k || dataObj.values || []) as number[],
-          d: (dataObj.d || []) as number[],
-        };
-      }
-    }
-  });
-
-  return result;
 };
 
 // Direct fetch to edge function
@@ -147,7 +50,7 @@ export const useMarketData = (
   parameters: Record<string, Record<string, number>>
 ) => {
   const [candles, setCandles] = useState<CandleData[]>([]);
-  const [indicatorData, setIndicatorData] = useState<Record<string, Record<string, number[]>>>({});
+  const [indicatorData, setIndicatorData] = useState<Record<string, Record<string, (number | null)[]>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRateLimitedRef = useRef(false);
@@ -235,33 +138,10 @@ export const useMarketData = (
       candlesData.sort((a, b) => a.timestamp - b.timestamp);
       setCandles(candlesData);
 
-      // Fetch indicators if any selected
+      // Calculate indicators client-side for accurate historical data
       if (selectedIndicators.length > 0) {
-        const indicatorConfigs = selectedIndicators
-          .map(id => buildIndicatorConfig(id, parameters[id] || {}))
-          .filter(Boolean);
-
-        if (indicatorConfigs.length > 0) {
-          const indicatorsPayload = {
-            coin: settings.coin,
-            exchange,
-            interval: settings.timeframe,
-            limit: settings.candleLimit,
-            indicators: indicatorConfigs,
-          };
-
-          try {
-            const indicatorsResponse = await callEdgeFunction('indicators', indicatorsPayload);
-            if (indicatorsResponse?.error) {
-              console.error('Indicators API error:', indicatorsResponse.error);
-            } else {
-              const transformedIndicators = transformIndicatorData(indicatorsResponse || {});
-              setIndicatorData(transformedIndicators);
-            }
-          } catch (indError) {
-            console.error('Indicators fetch error:', indError);
-          }
-        }
+        const calculatedIndicators = calculateIndicators(candlesData, selectedIndicators, parameters);
+        setIndicatorData(calculatedIndicators);
       } else {
         setIndicatorData({});
       }

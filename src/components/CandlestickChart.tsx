@@ -72,8 +72,8 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
       // Add indicator values - use sorted index since data is now sorted
       Object.entries(indicatorData).forEach(([indicatorId, values]) => {
         Object.entries(values).forEach(([key, arr]) => {
-          // Use sorted index for aligned indicator data
-          if (arr[index] !== undefined) {
+          // Include value even if null - Recharts handles null gracefully
+          if (arr && index < arr.length) {
             dataPoint[`${indicatorId}_${key}`] = arr[index];
           }
         });
