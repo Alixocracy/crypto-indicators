@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Header from '@/components/Header';
 import SettingsPanel from '@/components/SettingsPanel';
 import IndicatorSelector from '@/components/IndicatorSelector';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 const Index = () => {
   const [settings, setSettings] = useState<MarketSettings>({
     coin: 'BTC',
-    exchange: 'Binance',
+    exchange: 'Kraken',
     timeframe: '1h',
     candleLimit: 100
   });
