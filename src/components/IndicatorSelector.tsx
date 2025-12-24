@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { Activity, TrendingUp, Waves, Check, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { INDICATOR_CONFIGS, PRESETS, IndicatorConfig } from '@/types/indicators';
+import { INDICATOR_CONFIGS, IndicatorConfig } from '@/types/indicators';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -38,20 +36,12 @@ const categoryConfig = {
 };
 
 const IndicatorSelector = ({ selectedIndicators, onSelectionChange }: IndicatorSelectorProps) => {
-  const [activePreset, setActivePreset] = useState<string | null>(null);
-
   const toggleIndicator = (id: string) => {
     if (selectedIndicators.includes(id)) {
       onSelectionChange(selectedIndicators.filter(i => i !== id));
     } else {
       onSelectionChange([...selectedIndicators, id]);
     }
-    setActivePreset(null);
-  };
-
-  const applyPreset = (presetName: keyof typeof PRESETS) => {
-    onSelectionChange(PRESETS[presetName]);
-    setActivePreset(presetName);
   };
 
   const groupedIndicators = INDICATOR_CONFIGS.reduce((acc, indicator) => {
@@ -63,44 +53,16 @@ const IndicatorSelector = ({ selectedIndicators, onSelectionChange }: IndicatorS
   }, {} as Record<string, IndicatorConfig[]>);
 
   return (
-    <div className="gradient-border rounded-xl p-5 space-y-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+    <div className="gradient-border rounded-xl p-4 space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-foreground">Indicators</h2>
+        <h2 className="font-semibold text-foreground text-sm">Indicators</h2>
         <span className="text-xs text-muted-foreground">
           {selectedIndicators.length} selected
         </span>
       </div>
 
-      {/* Presets */}
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider">Quick Presets</p>
-        <div className="flex gap-2">
-          {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((preset) => {
-            const config = categoryConfig[preset];
-            const Icon = config.icon;
-            return (
-              <Button
-                key={preset}
-                variant="outline"
-                size="sm"
-                onClick={() => applyPreset(preset)}
-                className={cn(
-                  'flex-1 gap-1.5 text-xs capitalize transition-all duration-300',
-                  activePreset === preset 
-                    ? `${config.bgColor} ${config.borderColor} ${config.color}` 
-                    : 'hover:bg-secondary'
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {preset}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Category Groups */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {(Object.keys(categoryConfig) as Array<keyof typeof categoryConfig>).map((category) => {
           const config = categoryConfig[category];
           const Icon = config.icon;
