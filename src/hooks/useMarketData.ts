@@ -149,19 +149,12 @@ export const useMarketData = (
   const [candles, setCandles] = useState<CandleData[]>([]);
   const [indicatorData, setIndicatorData] = useState<Record<string, Record<string, number[]>>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRateLimitedRef = useRef(false);
+  const candlesRef = useRef<CandleData[]>([]);
 
-  // Stable reference for settings/indicators
-  const settingsRef = useRef(settings);
-  const indicatorsRef = useRef(selectedIndicators);
-  const parametersRef = useRef(parameters);
-
-  useEffect(() => {
-    settingsRef.current = settings;
-    indicatorsRef.current = selectedIndicators;
-    parametersRef.current = parameters;
-  }, [settings, selectedIndicators, parameters]);
+  // Keep candlesRef in sync
+  candlesRef.current = candles;
 
   const fetchData = useCallback(async (force = false) => {
     // Rate limit check
@@ -181,18 +174,14 @@ export const useMarketData = (
     setIsLoading(true);
 
     try {
-      const currentSettings = settingsRef.current;
-      const currentIndicators = indicatorsRef.current;
-      const currentParameters = parametersRef.current;
-      
-      const exchange = exchangeMap[currentSettings.exchange] || 'kraken';
+      const exchange = exchangeMap[settings.exchange] || 'kraken';
 
       // Fetch candles
       const candlesPayload = {
-        coin: currentSettings.coin,
+        coin: settings.coin,
         exchange,
-        interval: currentSettings.timeframe,
-        limit: currentSettings.candleLimit,
+        interval: settings.timeframe,
+        limit: settings.candleLimit,
       };
 
       console.log('Fetching candles:', candlesPayload);
@@ -205,7 +194,7 @@ export const useMarketData = (
         const errorMsg = fetchError instanceof Error ? fetchError.message : '';
         if (errorMsg.includes('Too many requests') || errorMsg.includes('rate limit')) {
           isRateLimitedRef.current = true;
-          if (candles.length > 0) {
+          if (candlesRef.current.length > 0) {
             toast.info('API rate limited. Showing cached data.');
             setIsLoading(false);
             return;
@@ -217,7 +206,7 @@ export const useMarketData = (
       if (candlesResponse?.error) {
         if (candlesResponse.error.includes('Too many requests')) {
           isRateLimitedRef.current = true;
-          if (candles.length > 0) {
+          if (candlesRef.current.length > 0) {
             toast.info('API rate limited. Showing cached data.');
             setIsLoading(false);
             return;
@@ -247,17 +236,17 @@ export const useMarketData = (
       setCandles(candlesData);
 
       // Fetch indicators if any selected
-      if (currentIndicators.length > 0) {
-        const indicatorConfigs = currentIndicators
-          .map(id => buildIndicatorConfig(id, currentParameters[id] || {}))
+      if (selectedIndicators.length > 0) {
+        const indicatorConfigs = selectedIndicators
+          .map(id => buildIndicatorConfig(id, parameters[id] || {}))
           .filter(Boolean);
 
         if (indicatorConfigs.length > 0) {
           const indicatorsPayload = {
-            coin: currentSettings.coin,
+            coin: settings.coin,
             exchange,
-            interval: currentSettings.timeframe,
-            limit: currentSettings.candleLimit,
+            interval: settings.timeframe,
+            limit: settings.candleLimit,
             indicators: indicatorConfigs,
           };
 
@@ -280,13 +269,13 @@ export const useMarketData = (
       toast.success('Data loaded');
     } catch (error) {
       console.error('Error fetching market data:', error);
-      if (candles.length === 0) {
+      if (candlesRef.current.length === 0) {
         toast.error(error instanceof Error ? error.message : 'Failed to load data');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [candles.length]);
+  }, [settings, selectedIndicators, parameters]);
 
   // Debounced effect for settings changes
   useEffect(() => {
@@ -303,7 +292,7 @@ export const useMarketData = (
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [settings.coin, settings.exchange, settings.timeframe, settings.candleLimit, selectedIndicators.join(','), JSON.stringify(parameters)]);
+  }, [fetchData]);
 
   return { candles, indicatorData, isLoading, refetch: () => fetchData(true) };
 };
