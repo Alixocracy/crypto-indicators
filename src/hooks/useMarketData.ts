@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CandleData, MarketSettings, INDICATOR_CONFIGS } from '@/types/indicators';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Map frontend exchange names to API-supported exchanges
 const exchangeMap: Record<string, string> = {
@@ -110,6 +112,31 @@ const transformIndicatorData = (
   return result;
 };
 
+// Direct fetch to edge function
+const callEdgeFunction = async (endpoint: string, payload: unknown) => {
+  if (!SUPABASE_URL) {
+    throw new Error('Backend not configured. Please refresh the page.');
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/trading-proxy`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ endpoint, payload }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error: ${errorText}`);
+  }
+
+  return response.json();
+};
+
 export const useMarketData = (
   settings: MarketSettings,
   selectedIndicators: string[],
@@ -135,13 +162,7 @@ export const useMarketData = (
 
       console.log('Fetching candles:', candlesPayload);
 
-      const { data: candlesResponse, error: candlesError } = await supabase.functions.invoke('trading-proxy', {
-        body: { endpoint: 'candles', payload: candlesPayload }
-      });
-
-      if (candlesError) {
-        throw new Error(`Failed to fetch candles: ${candlesError.message}`);
-      }
+      const candlesResponse = await callEdgeFunction('candles', candlesPayload);
 
       if (candlesResponse?.error) {
         throw new Error(candlesResponse.error);
@@ -176,13 +197,9 @@ export const useMarketData = (
 
           console.log('Fetching indicators:', indicatorsPayload);
 
-          const { data: indicatorsResponse, error: indicatorsError } = await supabase.functions.invoke('trading-proxy', {
-            body: { endpoint: 'indicators', payload: indicatorsPayload }
-          });
+          const indicatorsResponse = await callEdgeFunction('indicators', indicatorsPayload);
 
-          if (indicatorsError) {
-            console.error('Indicators error:', indicatorsError);
-          } else if (indicatorsResponse?.error) {
+          if (indicatorsResponse?.error) {
             console.error('Indicators API error:', indicatorsResponse.error);
           } else {
             const transformedIndicators = transformIndicatorData(indicatorsResponse || {});
@@ -197,7 +214,6 @@ export const useMarketData = (
     } catch (error) {
       console.error('Error fetching market data:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to load data');
-      // Keep existing data on error
     } finally {
       setIsLoading(false);
     }
