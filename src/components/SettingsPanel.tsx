@@ -9,9 +9,84 @@ import { HelpCircle } from 'lucide-react';
 interface SettingsPanelProps {
   settings: MarketSettings;
   onSettingsChange: (settings: MarketSettings) => void;
+  inline?: boolean;
 }
 
-const SettingsPanel = ({ settings, onSettingsChange }: SettingsPanelProps) => {
+const SettingsPanel = ({ settings, onSettingsChange, inline = false }: SettingsPanelProps) => {
+  if (inline) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Coin</Label>
+          <Select 
+            value={settings.coin} 
+            onValueChange={(value) => onSettingsChange({ ...settings, coin: value })}
+          >
+            <SelectTrigger className="h-8 w-20 bg-secondary border-border/50 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COINS.map((coin) => (
+                <SelectItem key={coin} value={coin}>{coin}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Exchange</Label>
+          <Select 
+            value={settings.exchange} 
+            onValueChange={(value) => onSettingsChange({ ...settings, exchange: value })}
+          >
+            <SelectTrigger className="h-8 w-24 bg-secondary border-border/50 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXCHANGES.map((exchange) => (
+                <SelectItem key={exchange} value={exchange}>{exchange}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Timeframe</Label>
+          <Select 
+            value={settings.timeframe} 
+            onValueChange={(value) => onSettingsChange({ ...settings, timeframe: value })}
+          >
+            <SelectTrigger className="h-8 w-16 bg-secondary border-border/50 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TIMEFRAMES.map((tf) => (
+                <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Candles</Label>
+          <Select 
+            value={String(settings.candleLimit)} 
+            onValueChange={(value) => onSettingsChange({ ...settings, candleLimit: Number(value) })}
+          >
+            <SelectTrigger className="h-8 w-20 bg-secondary border-border/50 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500].map((num) => (
+                <SelectItem key={num} value={String(num)}>{num}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="gradient-border rounded-xl p-5 space-y-5 animate-fade-in">
       <div className="flex items-center gap-2 text-foreground">
