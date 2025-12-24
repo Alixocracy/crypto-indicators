@@ -84,7 +84,15 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
     ['sma', 'ema', 'bbands'].includes(id)
   );
 
-  const formatPrice = (value: number) => {
+  const formatPrice = (value: unknown): string => {
+    // Handle arrays (from candleBody [min, max])
+    if (Array.isArray(value)) {
+      return value.map(v => formatPrice(v)).join(' - ');
+    }
+    // Handle non-numbers
+    if (typeof value !== 'number' || isNaN(value)) {
+      return String(value);
+    }
     if (value >= 10000) return `$${(value / 1000).toFixed(1)}k`;
     if (value >= 1000) return `$${value.toFixed(0)}`;
     return `$${value.toFixed(2)}`;
