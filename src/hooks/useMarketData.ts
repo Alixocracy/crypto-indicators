@@ -162,9 +162,29 @@ export const useMarketData = (
 
       console.log('Fetching candles:', candlesPayload);
 
-      const candlesResponse = await callEdgeFunction('candles', candlesPayload);
+      let candlesResponse;
+      try {
+        candlesResponse = await callEdgeFunction('candles', candlesPayload);
+      } catch (fetchError) {
+        // Handle rate limiting - keep existing data if we have it
+        if (candles.length > 0) {
+          console.warn('Rate limited, keeping existing data');
+          toast.info('API rate limited. Showing cached data.');
+          setIsLoading(false);
+          return;
+        }
+        throw fetchError;
+      }
 
       if (candlesResponse?.error) {
+        // Check if it's a rate limit error
+        if (candlesResponse.error.includes('Too many requests')) {
+          if (candles.length > 0) {
+            toast.info('API rate limited. Showing cached data.');
+            setIsLoading(false);
+            return;
+          }
+        }
         throw new Error(candlesResponse.error);
       }
 
