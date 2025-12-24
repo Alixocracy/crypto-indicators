@@ -38,13 +38,16 @@ const indicatorColors: Record<string, string> = {
 
 const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: CandlestickChartProps) => {
   const chartData = useMemo(() => {
-    return candles.map((candle, index) => {
+    // Sort candles by timestamp to ensure proper ordering
+    const sortedCandles = [...candles].sort((a, b) => a.timestamp - b.timestamp);
+    
+    return sortedCandles.map((candle, index) => {
       const dataPoint: any = {
+        // Keep raw timestamp for proper ordering, format display separately
+        timestamp: candle.timestamp,
         time: new Date(candle.timestamp).toLocaleDateString('en-US', { 
           month: 'short', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
+          day: 'numeric'
         }),
         open: candle.open,
         high: candle.high,
@@ -57,11 +60,12 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
         isUp: candle.close >= candle.open,
       };
 
-      // Add indicator values
+      // Add indicator values - find the original index in unsorted array
+      const originalIndex = candles.findIndex(c => c.timestamp === candle.timestamp);
       Object.entries(indicatorData).forEach(([indicatorId, values]) => {
         Object.entries(values).forEach(([key, arr]) => {
-          if (arr[index] !== undefined) {
-            dataPoint[`${indicatorId}_${key}`] = arr[index];
+          if (arr[originalIndex] !== undefined) {
+            dataPoint[`${indicatorId}_${key}`] = arr[originalIndex];
           }
         });
       });
@@ -146,6 +150,18 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
               }}
               labelStyle={{ color: '#9CA3AF' }}
               formatter={(value: number) => formatPrice(value)}
+              labelFormatter={(label, payload) => {
+                if (payload && payload[0]?.payload?.timestamp) {
+                  return new Date(payload[0].payload.timestamp).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+                }
+                return label;
+              }}
             />
 
             {/* Bollinger Bands Fill */}
