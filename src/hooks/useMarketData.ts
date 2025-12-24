@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { CandleData, MarketSettings, INDICATOR_CONFIGS } from '@/types/indicators';
 import { toast } from 'sonner';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Read env vars lazily to ensure they're available after Vite processes them
+const getSupabaseConfig = () => ({
+  url: import.meta.env.VITE_SUPABASE_URL || 'https://pabyskwdxspzcsjqqlxv.supabase.co',
+  key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYnlza3dkeHNwemNzanFxbHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1OTc5ODUsImV4cCI6MjA4MjE3Mzk4NX0.5sgUTr--RxyGf9zxtm4DvVqTY26CKRZmsCNf4wIBie4'
+});
 
 // Map frontend exchange names to API-supported exchanges
 const exchangeMap: Record<string, string> = {
@@ -114,17 +117,14 @@ const transformIndicatorData = (
 
 // Direct fetch to edge function
 const callEdgeFunction = async (endpoint: string, payload: unknown) => {
-  if (!SUPABASE_URL) {
-    throw new Error('Backend not configured. Please refresh the page.');
-  }
-
-  const url = `${SUPABASE_URL}/functions/v1/trading-proxy`;
+  const config = getSupabaseConfig();
+  const url = `${config.url}/functions/v1/trading-proxy`;
   
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Authorization': `Bearer ${config.key}`,
     },
     body: JSON.stringify({ endpoint, payload }),
   });
