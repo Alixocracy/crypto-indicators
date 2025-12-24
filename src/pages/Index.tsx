@@ -48,36 +48,37 @@ const Index = () => {
       <Header />
       
       <main className="container mx-auto px-4 py-6">
-        {/* Educational Banner */}
-        <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3 animate-fade-in">
-          <BookOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm text-foreground font-medium">Welcome to the Playground!</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              This is a learning tool, not a trading system. Explore how indicators work, what they measure, and 
-              why they don't predict the future. No signals, no advice — just understanding.
-            </p>
+        {/* Top Banner - Welcome + Market Settings */}
+        <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20 animate-fade-in">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <BookOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-foreground font-medium">Welcome to the Playground!</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This is a learning tool, not a trading system. Explore how indicators work, what they measure, and 
+                  why they don't predict the future. No signals, no advice — just understanding.
+                </p>
+              </div>
+            </div>
+            <div className="lg:w-auto">
+              <SettingsPanel settings={settings} onSettingsChange={setSettings} inline />
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
-          {/* Left Sidebar - Controls */}
+          {/* Left Sidebar - Indicators Only */}
           <div className="col-span-12 lg:col-span-3 space-y-4">
-            <SettingsPanel settings={settings} onSettingsChange={setSettings} />
             <IndicatorSelector 
               selectedIndicators={selectedIndicators} 
               onSelectionChange={setSelectedIndicators} 
             />
-            <ParameterSliders 
-              selectedIndicators={selectedIndicators}
-              parameters={parameters}
-              onParameterChange={handleParameterChange}
-            />
           </div>
 
-          {/* Main Chart Area */}
-          <div className="col-span-12 lg:col-span-6">
-            <div className="gradient-border rounded-xl p-4 h-[600px] relative animate-fade-in" style={{ animationDelay: '0.15s' }}>
+          {/* Main Chart Area + Parameters */}
+          <div className="col-span-12 lg:col-span-6 space-y-4">
+            <div className="gradient-border rounded-xl p-4 h-[500px] relative animate-fade-in" style={{ animationDelay: '0.15s' }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <h2 className="font-semibold text-foreground">{settings.coin}/USDT</h2>
@@ -117,6 +118,13 @@ const Index = () => {
                 </div>
               )}
             </div>
+            
+            {/* Parameters below chart */}
+            <ParameterSliders 
+              selectedIndicators={selectedIndicators}
+              parameters={parameters}
+              onParameterChange={handleParameterChange}
+            />
           </div>
 
           {/* Right Sidebar - Insights */}
