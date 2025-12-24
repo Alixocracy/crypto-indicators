@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CandleData, MarketSettings, INDICATOR_CONFIGS } from '@/types/indicators';
 import { toast } from 'sonner';
 
@@ -7,6 +7,10 @@ const getSupabaseConfig = () => ({
   url: import.meta.env.VITE_SUPABASE_URL || 'https://pabyskwdxspzcsjqqlxv.supabase.co',
   key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYnlza3dkeHNwemNzanFxbHh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1OTc5ODUsImV4cCI6MjA4MjE3Mzk4NX0.5sgUTr--RxyGf9zxtm4DvVqTY26CKRZmsCNf4wIBie4'
 });
+
+// Rate limit tracking
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
 
 // Map frontend exchange names to API-supported exchanges
 const exchangeMap: Record<string, string> = {
@@ -145,19 +149,50 @@ export const useMarketData = (
   const [candles, setCandles] = useState<CandleData[]>([]);
   const [indicatorData, setIndicatorData] = useState<Record<string, Record<string, number[]>>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRateLimitedRef = useRef(false);
 
-  const fetchData = useCallback(async () => {
+  // Stable reference for settings/indicators
+  const settingsRef = useRef(settings);
+  const indicatorsRef = useRef(selectedIndicators);
+  const parametersRef = useRef(parameters);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+    indicatorsRef.current = selectedIndicators;
+    parametersRef.current = parameters;
+  }, [settings, selectedIndicators, parameters]);
+
+  const fetchData = useCallback(async (force = false) => {
+    // Rate limit check
+    const now = Date.now();
+    if (!force && now - lastRequestTime < MIN_REQUEST_INTERVAL) {
+      console.log('Skipping request - rate limited');
+      return;
+    }
+
+    // If currently rate limited by API, don't retry immediately
+    if (isRateLimitedRef.current && !force) {
+      console.log('Skipping request - API rate limited');
+      return;
+    }
+
+    lastRequestTime = now;
     setIsLoading(true);
 
     try {
-      const exchange = exchangeMap[settings.exchange] || 'kraken';
+      const currentSettings = settingsRef.current;
+      const currentIndicators = indicatorsRef.current;
+      const currentParameters = parametersRef.current;
+      
+      const exchange = exchangeMap[currentSettings.exchange] || 'kraken';
 
       // Fetch candles
       const candlesPayload = {
-        coin: settings.coin,
+        coin: currentSettings.coin,
         exchange,
-        interval: settings.timeframe,
-        limit: settings.candleLimit,
+        interval: currentSettings.timeframe,
+        limit: currentSettings.candleLimit,
       };
 
       console.log('Fetching candles:', candlesPayload);
@@ -165,20 +200,23 @@ export const useMarketData = (
       let candlesResponse;
       try {
         candlesResponse = await callEdgeFunction('candles', candlesPayload);
+        isRateLimitedRef.current = false;
       } catch (fetchError) {
-        // Handle rate limiting - keep existing data if we have it
-        if (candles.length > 0) {
-          console.warn('Rate limited, keeping existing data');
-          toast.info('API rate limited. Showing cached data.');
-          setIsLoading(false);
-          return;
+        const errorMsg = fetchError instanceof Error ? fetchError.message : '';
+        if (errorMsg.includes('Too many requests') || errorMsg.includes('rate limit')) {
+          isRateLimitedRef.current = true;
+          if (candles.length > 0) {
+            toast.info('API rate limited. Showing cached data.');
+            setIsLoading(false);
+            return;
+          }
         }
         throw fetchError;
       }
 
       if (candlesResponse?.error) {
-        // Check if it's a rate limit error
         if (candlesResponse.error.includes('Too many requests')) {
+          isRateLimitedRef.current = true;
           if (candles.length > 0) {
             toast.info('API rate limited. Showing cached data.');
             setIsLoading(false);
@@ -190,12 +228,9 @@ export const useMarketData = (
 
       // Transform candles response
       const rawCandles = candlesResponse?.candles || [];
-      console.log('Raw candles from API (first 3):', rawCandles.slice(0, 3));
       
       const candlesData: CandleData[] = rawCandles.map((c: Record<string, unknown>) => {
-        // Check if timestamp is in seconds or milliseconds
         const ts = c.timestamp as number;
-        // If timestamp is less than a reasonable millisecond value (year 2001), it's in seconds
         const timestamp = ts < 1000000000000 ? ts * 1000 : ts;
         
         return {
@@ -208,58 +243,67 @@ export const useMarketData = (
         };
       });
 
-      // Sort by timestamp to ensure chronological order
       candlesData.sort((a, b) => a.timestamp - b.timestamp);
-      
-      console.log('Processed candles (first 3):', candlesData.slice(0, 3).map(c => ({
-        date: new Date(c.timestamp).toISOString(),
-        timestamp: c.timestamp
-      })));
-
       setCandles(candlesData);
 
       // Fetch indicators if any selected
-      if (selectedIndicators.length > 0) {
-        const indicatorConfigs = selectedIndicators
-          .map(id => buildIndicatorConfig(id, parameters[id] || {}))
+      if (currentIndicators.length > 0) {
+        const indicatorConfigs = currentIndicators
+          .map(id => buildIndicatorConfig(id, currentParameters[id] || {}))
           .filter(Boolean);
 
         if (indicatorConfigs.length > 0) {
           const indicatorsPayload = {
-            coin: settings.coin,
+            coin: currentSettings.coin,
             exchange,
-            interval: settings.timeframe,
-            limit: settings.candleLimit,
+            interval: currentSettings.timeframe,
+            limit: currentSettings.candleLimit,
             indicators: indicatorConfigs,
           };
 
-          console.log('Fetching indicators:', indicatorsPayload);
-
-          const indicatorsResponse = await callEdgeFunction('indicators', indicatorsPayload);
-
-          if (indicatorsResponse?.error) {
-            console.error('Indicators API error:', indicatorsResponse.error);
-          } else {
-            const transformedIndicators = transformIndicatorData(indicatorsResponse || {});
-            setIndicatorData(transformedIndicators);
+          try {
+            const indicatorsResponse = await callEdgeFunction('indicators', indicatorsPayload);
+            if (indicatorsResponse?.error) {
+              console.error('Indicators API error:', indicatorsResponse.error);
+            } else {
+              const transformedIndicators = transformIndicatorData(indicatorsResponse || {});
+              setIndicatorData(transformedIndicators);
+            }
+          } catch (indError) {
+            console.error('Indicators fetch error:', indError);
           }
         }
       } else {
         setIndicatorData({});
       }
 
-      toast.success('Data loaded from API');
+      toast.success('Data loaded');
     } catch (error) {
       console.error('Error fetching market data:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to load data');
+      if (candles.length === 0) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load data');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [settings, selectedIndicators, parameters]);
+  }, [candles.length]);
 
+  // Debounced effect for settings changes
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
 
-  return { candles, indicatorData, isLoading, refetch: fetchData };
+    debounceTimerRef.current = setTimeout(() => {
+      fetchData();
+    }, 500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [settings.coin, settings.exchange, settings.timeframe, settings.candleLimit, selectedIndicators.join(','), JSON.stringify(parameters)]);
+
+  return { candles, indicatorData, isLoading, refetch: () => fetchData(true) };
 };
