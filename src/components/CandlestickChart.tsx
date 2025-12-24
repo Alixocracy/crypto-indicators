@@ -123,11 +123,11 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
   }
 
   return (
-    <div className="h-full w-full space-y-4">
+    <div className="h-full w-full flex flex-col">
       {/* Main Price Chart */}
-      <div className="h-[60%] w-full">
+      <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="bbandsFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#A855F7" stopOpacity={0.1} />
@@ -136,10 +136,11 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
             </defs>
             <XAxis 
               dataKey="index" 
-              tick={{ fill: '#6B7280', fontSize: 10 }}
+              tick={{ fill: '#6B7280', fontSize: 9 }}
               axisLine={{ stroke: '#374151' }}
               tickLine={{ stroke: '#374151' }}
               interval="preserveStartEnd"
+              height={20}
               tickFormatter={(index) => {
                 const item = chartData[index];
                 if (item) {
@@ -151,19 +152,19 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
             />
             <YAxis 
               domain={[priceExtent.min, priceExtent.max]}
-              tick={{ fill: '#6B7280', fontSize: 10 }}
+              tick={{ fill: '#6B7280', fontSize: 9 }}
               axisLine={{ stroke: '#374151' }}
               tickLine={{ stroke: '#374151' }}
               tickFormatter={formatPrice}
               orientation="right"
-              width={60}
+              width={50}
             />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'hsl(222 47% 9%)', 
                 border: '1px solid hsl(222 30% 18%)',
                 borderRadius: '8px',
-                fontSize: '12px'
+                fontSize: '11px'
               }}
               labelStyle={{ color: '#9CA3AF' }}
               formatter={(value: number) => formatPrice(value)}
@@ -276,22 +277,22 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 px-4 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-chart-up"></div>
-          <span className="text-muted-foreground">Bullish Candle</span>
+      <div className="flex flex-wrap gap-3 pt-2 text-xs shrink-0">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded bg-chart-up"></div>
+          <span className="text-muted-foreground">Bullish</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-chart-down"></div>
-          <span className="text-muted-foreground">Bearish Candle</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded bg-chart-down"></div>
+          <span className="text-muted-foreground">Bearish</span>
         </div>
         {overlayIndicators.map(id => {
           const config = INDICATOR_CONFIGS.find(c => c.id === id);
           if (!config) return null;
           return (
-            <div key={id} className="flex items-center gap-2">
+            <div key={id} className="flex items-center gap-1.5">
               <div 
-                className="w-6 h-0.5 rounded" 
+                className="w-4 h-0.5 rounded" 
                 style={{ backgroundColor: indicatorColors[id] || indicatorColors[`${id}_middle`] }}
               ></div>
               <span className="text-muted-foreground">{config.name}</span>
