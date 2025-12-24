@@ -6,9 +6,16 @@ import ParameterSliders from '@/components/ParameterSliders';
 import CandlestickChart from '@/components/CandlestickChart';
 import InsightPanel from '@/components/InsightPanel';
 import { useMarketData } from '@/hooks/useMarketData';
-import { MarketSettings, INDICATOR_CONFIGS } from '@/types/indicators';
-import { Loader2, BookOpen, RefreshCw } from 'lucide-react';
+import { MarketSettings, INDICATOR_CONFIGS, PRESETS } from '@/types/indicators';
+import { Loader2, BookOpen, RefreshCw, Activity, TrendingUp, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const presetConfig = {
+  momentum: { icon: Activity, label: 'Momentum' },
+  trend: { icon: TrendingUp, label: 'Trend' },
+  volatility: { icon: Waves, label: 'Volatility' }
+};
 
 const Index = () => {
   const [settings, setSettings] = useState<MarketSettings>({
@@ -19,6 +26,7 @@ const Index = () => {
   });
 
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>(['rsi', 'sma']);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   
   const [parameters, setParameters] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
@@ -41,6 +49,11 @@ const Index = () => {
         [paramName]: value
       }
     }));
+  };
+
+  const applyPreset = (presetName: keyof typeof PRESETS) => {
+    setSelectedIndicators(PRESETS[presetName]);
+    setActivePreset(presetName);
   };
 
   return (
@@ -72,7 +85,10 @@ const Index = () => {
             <div className="lg:sticky lg:top-4">
               <IndicatorSelector 
                 selectedIndicators={selectedIndicators} 
-                onSelectionChange={setSelectedIndicators} 
+                onSelectionChange={(indicators) => {
+                  setSelectedIndicators(indicators);
+                  setActivePreset(null);
+                }} 
               />
             </div>
           </div>
@@ -87,16 +103,36 @@ const Index = () => {
                     {settings.timeframe}
                   </span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={refetch}
-                  disabled={isLoading}
-                  className="gap-1.5 h-7 text-xs"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-1">
+                  {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((preset) => {
+                    const config = presetConfig[preset];
+                    const Icon = config.icon;
+                    return (
+                      <Button
+                        key={preset}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => applyPreset(preset)}
+                        className={cn(
+                          'h-7 px-2 gap-1 text-xs',
+                          activePreset === preset && 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        <Icon className="w-3 h-3" />
+                        <span className="hidden sm:inline">{config.label}</span>
+                      </Button>
+                    );
+                  })}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={refetch}
+                    disabled={isLoading}
+                    className="h-7 px-2"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
               </div>
               
               {isLoading ? (
