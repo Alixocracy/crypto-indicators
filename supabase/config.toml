@@ -1,0 +1,4 @@
+project_id = "pabyskwdxspzcsjqqlxv"
+
+[functions.trading-proxy]
+verify_jwt = false

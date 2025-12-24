@@ -170,5 +170,5 @@ export const PRESETS = {
 };
 
 export const COINS = ['BTC', 'ETH', 'SOL', 'DOGE', 'XRP', 'ADA', 'AVAX', 'LINK', 'DOT', 'MATIC'];
-export const EXCHANGES = ['Binance', 'Coinbase', 'Kraken', 'Bybit', 'OKX'];
+export const EXCHANGES = ['Kraken', 'Coinbase', 'CoinGecko', 'KuCoin', 'GateIO'];
 export const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1d', '1w'];
