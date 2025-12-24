@@ -42,13 +42,22 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
     const sortedCandles = [...candles].sort((a, b) => a.timestamp - b.timestamp);
     
     return sortedCandles.map((candle, index) => {
+      // Format time based on the data - include time for intraday, just date for daily+
+      const date = new Date(candle.timestamp);
+      const timeLabel = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
       const dataPoint: any = {
-        // Keep raw timestamp for proper ordering, format display separately
+        // Use index as unique identifier for x-axis to maintain order
+        index,
+        // Keep raw timestamp for tooltip
         timestamp: candle.timestamp,
-        time: new Date(candle.timestamp).toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric'
-        }),
+        // Formatted time for display
+        time: timeLabel,
         open: candle.open,
         high: candle.high,
         low: candle.low,
@@ -60,12 +69,12 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
         isUp: candle.close >= candle.open,
       };
 
-      // Add indicator values - find the original index in unsorted array
-      const originalIndex = candles.findIndex(c => c.timestamp === candle.timestamp);
+      // Add indicator values - use sorted index since data is now sorted
       Object.entries(indicatorData).forEach(([indicatorId, values]) => {
         Object.entries(values).forEach(([key, arr]) => {
-          if (arr[originalIndex] !== undefined) {
-            dataPoint[`${indicatorId}_${key}`] = arr[originalIndex];
+          // Use sorted index for aligned indicator data
+          if (arr[index] !== undefined) {
+            dataPoint[`${indicatorId}_${key}`] = arr[index];
           }
         });
       });
@@ -126,11 +135,19 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
               </linearGradient>
             </defs>
             <XAxis 
-              dataKey="time" 
+              dataKey="index" 
               tick={{ fill: '#6B7280', fontSize: 10 }}
               axisLine={{ stroke: '#374151' }}
               tickLine={{ stroke: '#374151' }}
               interval="preserveStartEnd"
+              tickFormatter={(index) => {
+                const item = chartData[index];
+                if (item) {
+                  const date = new Date(item.timestamp);
+                  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }
+                return '';
+              }}
             />
             <YAxis 
               domain={[priceExtent.min, priceExtent.max]}
@@ -175,12 +192,12 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
             )}
 
             {/* Candlesticks as bars */}
-            {chartData.map((entry, index) => (
+            {chartData.map((entry, idx) => (
               <ReferenceLine
-                key={`wick-${index}`}
+                key={`wick-${idx}`}
                 segment={[
-                  { x: entry.time, y: entry.low },
-                  { x: entry.time, y: entry.high }
+                  { x: entry.index, y: entry.low },
+                  { x: entry.index, y: entry.high }
                 ]}
                 stroke={entry.isUp ? '#22C55E' : '#EF4444'}
                 strokeWidth={1}
