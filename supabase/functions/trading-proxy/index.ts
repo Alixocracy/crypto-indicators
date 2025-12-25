@@ -2,10 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-agnic-token',
 };
 
-const API_BASE_URL = 'https://indicator-api.fly.dev/trading';
+const AGNIC_ENDPOINT = 'https://api.agnicpay.xyz/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,33 +14,33 @@ serve(async (req) => {
   }
 
   try {
-    const { endpoint, payload } = await req.json();
+    const agnicToken = req.headers.get('x-agnic-token');
     
-    console.log(`Proxying request to: ${endpoint}`);
-    console.log('Payload:', JSON.stringify(payload));
-
-    if (!endpoint || !['candles', 'indicators'].includes(endpoint)) {
-      throw new Error('Invalid endpoint. Use "candles" or "indicators"');
+    if (!agnicToken) {
+      throw new Error('Missing X-Agnic-Token header');
     }
 
-    const url = `${API_BASE_URL}/v1/${endpoint}`;
+    const payload = await req.json();
     
-    const response = await fetch(url, {
+    console.log('Proxying request to Agnic:', JSON.stringify(payload));
+
+    const response = await fetch(AGNIC_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Agnic-Token': agnicToken,
       },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API error (${response.status}):`, errorText);
+      console.error(`Agnic API error (${response.status}):`, errorText);
       throw new Error(`API returned ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log(`Response received for ${endpoint}:`, JSON.stringify(data).slice(0, 500));
+    console.log('Response received:', JSON.stringify(data).slice(0, 500));
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
