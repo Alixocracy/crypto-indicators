@@ -17,7 +17,7 @@ const exchangeMap: Record<string, string> = {
   'GateIO': 'gateio',
 };
 
-const AGNIC_ENDPOINT = 'https://api.agnicpay.xyz/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST';
+const PROXY_ENDPOINT = 'https://pabyskwdxspzcsjqqlxv.supabase.co/functions/v1/trading-proxy';
 
 export const useMarketData = (
   settings: MarketSettings,
@@ -72,9 +72,9 @@ export const useMarketData = (
         limit: settings.candleLimit,
       };
 
-      console.log('Fetching candles via Agnic:', candlesPayload);
+      console.log('Fetching candles via proxy:', candlesPayload);
 
-      const response = await fetch(AGNIC_ENDPOINT, {
+      const response = await fetch(PROXY_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
