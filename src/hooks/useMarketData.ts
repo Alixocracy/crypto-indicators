@@ -83,7 +83,7 @@ export const useMarketData = (
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`API error: ${errorText}`);
+        throw new Error(`status ${response.status} ${response.statusText}: ${errorText}`);
       }
 
       const candlesResponse = await response.json();
