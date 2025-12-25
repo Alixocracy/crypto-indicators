@@ -1,12 +1,14 @@
 import { Lightbulb, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { INDICATOR_CONFIGS, CandleData } from '@/types/indicators';
 import { cn } from '@/lib/utils';
+import { PatternHint } from '@/utils/events';
 
 interface InsightPanelProps {
   selectedIndicators: string[];
   indicatorData: Record<string, Record<string, number[]>>;
   candles: CandleData[];
   parameters: Record<string, Record<string, number>>;
+  patternHints?: PatternHint[];
 }
 
 interface Insight {
@@ -17,7 +19,7 @@ interface Insight {
   warning?: string;
 }
 
-const InsightPanel = ({ selectedIndicators, indicatorData, candles, parameters }: InsightPanelProps) => {
+const InsightPanel = ({ selectedIndicators, indicatorData, candles, parameters, patternHints = [] }: InsightPanelProps) => {
   const generateInsights = (): Insight[] => {
     const insights: Insight[] = [];
     const lastCandle = candles[candles.length - 1];
@@ -221,6 +223,31 @@ const InsightPanel = ({ selectedIndicators, indicatorData, candles, parameters }
           </div>
         ))}
       </div>
+
+      {patternHints.length > 0 && (
+        <div className="pt-2 border-t border-border/50 space-y-3">
+          <div className="flex items-center gap-2 text-foreground">
+            <Lightbulb className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold text-sm">Pattern hints</h3>
+          </div>
+          <div className="space-y-2">
+            {patternHints.map((hint, idx) => (
+              <div key={idx} className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                <div className="flex items-center gap-2 text-xs mb-1">
+                  <span className={cn(
+                    'px-2 py-0.5 rounded-full',
+                    hint.severity === 'watch' ? 'bg-amber-500/20 text-amber-500' : 'bg-primary/10 text-primary'
+                  )}>
+                    {hint.severity === 'watch' ? 'Watch' : 'Info'}
+                  </span>
+                  <span className="font-medium text-foreground">{hint.title}</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{hint.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="pt-4 border-t border-border/50">
         <p className="text-xs text-center text-muted-foreground/70 italic">

@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Header from '@/components/Header';
-import SettingsPanel from '@/components/SettingsPanel';
 import IndicatorSelector from '@/components/IndicatorSelector';
 import ParameterSliders from '@/components/ParameterSliders';
 import CandlestickChart from '@/components/CandlestickChart';
 import InsightPanel from '@/components/InsightPanel';
+import ReadingsPanel from '@/components/ReadingsPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMarketData } from '@/hooks/useMarketData';
 import { MarketSettings, INDICATOR_CONFIGS, PRESETS } from '@/types/indicators';
-import { Loader2, BookOpen, RefreshCw, Activity, TrendingUp, Waves } from 'lucide-react';
+import { SCENARIOS } from '@/types/scenarios';
+import { buildEventPins, detectPatternHints } from '@/utils/events';
+import { Loader2, RefreshCw, Activity, TrendingUp, Waves, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +30,8 @@ const Index = () => {
 
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>(['rsi', 'sma']);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  const [showEvents, setShowEvents] = useState(true);
   
   const [parameters, setParameters] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
@@ -40,6 +45,14 @@ const Index = () => {
   });
 
   const { candles, indicatorData, isLoading, refetch } = useMarketData(settings, selectedIndicators, parameters);
+  const eventPins = useMemo(
+    () => buildEventPins(candles, indicatorData, selectedIndicators),
+    [candles, indicatorData, selectedIndicators]
+  );
+  const patternHints = useMemo(
+    () => detectPatternHints(candles, indicatorData, selectedIndicators),
+    [candles, indicatorData, selectedIndicators]
+  );
 
   const handleParameterChange = (indicatorId: string, paramName: string, value: number) => {
     setParameters(prev => ({
@@ -54,28 +67,120 @@ const Index = () => {
   const applyPreset = (presetName: keyof typeof PRESETS) => {
     setSelectedIndicators(PRESETS[presetName]);
     setActivePreset(presetName);
+    setActiveScenario(null);
+  };
+
+  const applyScenario = (scenarioId: string) => {
+    const scenario = SCENARIOS.find(s => s.id === scenarioId);
+    if (!scenario) return;
+    setSettings(prev => ({ ...prev, ...scenario.settings }));
+    setSelectedIndicators(scenario.indicators);
+    setActiveScenario(scenario.id);
+    setActivePreset(null);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header settings={settings} onSettingsChange={setSettings} />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Top Banner - Welcome + Market Settings */}
-        <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20 animate-fade-in">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              <BookOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-sm text-foreground font-medium">Welcome to the Playground!</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This is a learning tool, not a trading system. Explore how indicators work.
-                </p>
-              </div>
+
+        {/* Mobile quick toggles */}
+        <div className="lg:hidden mb-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">Quick toggles</p>
+            <div className="flex items-center gap-2">
+              {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((preset) => (
+                <Button
+                  key={preset}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => applyPreset(preset)}
+                  className={cn(
+                    'h-8 text-xs px-3',
+                    activePreset === preset && 'bg-primary/10 text-primary'
+                  )}
+                >
+                  {presetConfig[preset].label}
+                </Button>
+              ))}
             </div>
-            <div className="shrink-0">
-              <SettingsPanel settings={settings} onSettingsChange={setSettings} inline />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {INDICATOR_CONFIGS.map(indicator => {
+              const isSelected = selectedIndicators.includes(indicator.id);
+              return (
+                <Button
+                  key={indicator.id}
+                  variant={isSelected ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 text-xs whitespace-nowrap"
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedIndicators(selectedIndicators.filter(id => id !== indicator.id));
+                    } else {
+                      setSelectedIndicators([...selectedIndicators, indicator.id]);
+                    }
+                    setActivePreset(null);
+                    setActiveScenario(null);
+                  }}
+                >
+                  {indicator.name}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Scenario cards */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Scenario cards</p>
+              <p className="text-xs text-muted-foreground">Apply ready-made setups with a learning checklist.</p>
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                setActiveScenario(null);
+                setSelectedIndicators(['rsi', 'sma']);
+                setActivePreset(null);
+              }}
+              className="text-xs"
+            >
+              Reset
+            </Button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {SCENARIOS.map((scenario, idx) => (
+              <button
+                key={scenario.id}
+                onClick={() => applyScenario(scenario.id)}
+                className={cn(
+                  'w-full text-left p-4 rounded-xl border transition-all',
+                  'bg-secondary/50 hover:border-primary/40 hover:shadow-sm',
+                  activeScenario === scenario.id && 'border-primary/60 shadow-md'
+                )}
+                style={{ animationDelay: `${idx * 0.05}s` }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-foreground">{scenario.title}</p>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {scenario.settings.timeframe}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{scenario.subtitle}</p>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  {scenario.explainer.slice(0, 3).map((line, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span className="leading-snug">{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -88,6 +193,7 @@ const Index = () => {
                 onSelectionChange={(indicators) => {
                   setSelectedIndicators(indicators);
                   setActivePreset(null);
+                  setActiveScenario(null);
                 }} 
               />
             </div>
@@ -126,6 +232,15 @@ const Index = () => {
                   <Button 
                     variant="ghost" 
                     size="sm" 
+                    onClick={() => setShowEvents(!showEvents)}
+                    className={cn("h-7 px-2 gap-1", showEvents && "bg-primary/10 text-primary")}
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline text-xs">Events</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     onClick={refetch}
                     disabled={isLoading}
                     className="h-7 px-2"
@@ -148,6 +263,8 @@ const Index = () => {
                     candles={candles}
                     selectedIndicators={selectedIndicators}
                     indicatorData={indicatorData}
+                    eventPins={eventPins}
+                    showEvents={showEvents}
                   />
                 </div>
               )}
@@ -161,15 +278,27 @@ const Index = () => {
             />
           </div>
 
-          {/* Right Sidebar - Insights */}
+          {/* Right Sidebar - Tabs */}
           <div className="col-span-12 lg:col-span-4">
             <div className="lg:sticky lg:top-4">
-              <InsightPanel 
-                selectedIndicators={selectedIndicators}
-                indicatorData={indicatorData}
-                candles={candles}
-                parameters={parameters}
-              />
+              <Tabs defaultValue="insights" className="w-full">
+                <TabsList className="grid grid-cols-2 mb-3">
+                  <TabsTrigger value="insights">Insights</TabsTrigger>
+                  <TabsTrigger value="readings">Readings</TabsTrigger>
+                </TabsList>
+                <TabsContent value="insights">
+                  <InsightPanel 
+                    selectedIndicators={selectedIndicators}
+                    indicatorData={indicatorData}
+                    candles={candles}
+                    parameters={parameters}
+                    patternHints={patternHints}
+                  />
+                </TabsContent>
+                <TabsContent value="readings">
+                  <ReadingsPanel candles={candles} indicatorData={indicatorData} />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>

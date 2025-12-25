@@ -11,11 +11,14 @@ import {
   Area,
 } from 'recharts';
 import { CandleData, INDICATOR_CONFIGS } from '@/types/indicators';
+import { EventPin } from '@/utils/events';
 
 interface CandlestickChartProps {
   candles: CandleData[];
   selectedIndicators: string[];
-  indicatorData: Record<string, Record<string, number[]>>;
+  indicatorData: Record<string, Record<string, (number | null)[]>>;
+  eventPins?: EventPin[];
+  showEvents?: boolean;
 }
 
 const indicatorColors: Record<string, string> = {
@@ -36,7 +39,7 @@ const indicatorColors: Record<string, string> = {
   atr: '#A855F7',
 };
 
-const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: CandlestickChartProps) => {
+const CandlestickChart = ({ candles, selectedIndicators, indicatorData, eventPins = [], showEvents = true }: CandlestickChartProps) => {
   const chartData = useMemo(() => {
     // Sort candles by timestamp to ensure proper ordering
     const sortedCandles = [...candles].sort((a, b) => a.timestamp - b.timestamp);
@@ -97,6 +100,15 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
     ['sma', 'ema', 'bbands'].includes(id)
   );
 
+  const eventsByIndex = useMemo(() => {
+    const map: Record<number, EventPin[]> = {};
+    eventPins.forEach(pin => {
+      if (!map[pin.index]) map[pin.index] = [];
+      map[pin.index].push(pin);
+    });
+    return map;
+  }, [eventPins]);
+
   const formatPrice = (value: unknown): string => {
     // Handle arrays (from candleBody [min, max])
     if (Array.isArray(value)) {
@@ -109,6 +121,44 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
     if (value >= 10000) return `$${(value / 1000).toFixed(1)}k`;
     if (value >= 1000) return `$${value.toFixed(0)}`;
     return `$${value.toFixed(2)}`;
+  };
+
+  const renderTooltip = (tooltipProps: any) => {
+    const { active, payload } = tooltipProps;
+    if (!active || !payload || !payload.length) return null;
+
+    const data = payload[0].payload;
+    const events = eventsByIndex[data.index] || [];
+    
+    return (
+      <div className="rounded-md border border-border bg-card/90 p-3 shadow-sm">
+        <div className="text-xs text-muted-foreground">
+          {new Date(data.timestamp).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+        <div className="mt-1 text-sm font-medium text-foreground">
+          Close {formatPrice(data.close)}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          O {formatPrice(data.open)} • H {formatPrice(data.high)} • L {formatPrice(data.low)}
+        </div>
+        {events.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {events.map((e, idx) => (
+              <div key={idx} className="text-xs">
+                <span className="font-semibold" style={{ color: e.color }}>{e.label}</span>
+                <span className="text-muted-foreground ml-1">{e.detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (candles.length === 0) {
@@ -159,28 +209,7 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
               orientation="right"
               width={50}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'hsl(222 47% 9%)', 
-                border: '1px solid hsl(222 30% 18%)',
-                borderRadius: '8px',
-                fontSize: '11px'
-              }}
-              labelStyle={{ color: '#9CA3AF' }}
-              formatter={(value: number) => formatPrice(value)}
-              labelFormatter={(label, payload) => {
-                if (payload && payload[0]?.payload?.timestamp) {
-                  return new Date(payload[0].payload.timestamp).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  });
-                }
-                return label;
-              }}
-            />
+            <Tooltip content={renderTooltip} />
 
             {/* Bollinger Bands Fill */}
             {overlayIndicators.includes('bbands') && indicatorData.bbands && (
@@ -272,6 +301,20 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
                 />
               </>
             )}
+            {showEvents && eventPins.map((pin, idx) => (
+              <ReferenceLine
+                key={`event-${idx}-${pin.timestamp}`}
+                x={pin.index}
+                stroke={pin.color}
+                strokeDasharray="3 3"
+                label={{
+                  value: pin.label,
+                  position: 'top',
+                  fill: pin.color,
+                  fontSize: 10
+                }}
+              />
+            ))}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -299,6 +342,12 @@ const CandlestickChart = ({ candles, selectedIndicators, indicatorData }: Candle
             </div>
           );
         })}
+        {showEvents && eventPins.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded bg-primary/60"></div>
+            <span className="text-muted-foreground">Event pins</span>
+          </div>
+        )}
       </div>
     </div>
   );
