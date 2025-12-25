@@ -112,9 +112,8 @@ export const useMarketData = (
       toast.success('Data loaded');
     } catch (error) {
       console.error('Error fetching market data:', error);
-      if (candlesRef.current.length === 0) {
-        toast.error(error instanceof Error ? error.message : 'Failed to load data');
-      }
+      const message = error instanceof Error ? error.message : 'Failed to load data';
+      toast.error(`API error: ${message}`);
     } finally {
       setIsLoading(false);
     }
