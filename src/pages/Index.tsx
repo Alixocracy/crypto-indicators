@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/Header';
 import IndicatorSelector from '@/components/IndicatorSelector';
 import ParameterSliders from '@/components/ParameterSliders';
@@ -10,9 +10,11 @@ import { useMarketData } from '@/hooks/useMarketData';
 import { MarketSettings, INDICATOR_CONFIGS, PRESETS } from '@/types/indicators';
 import { SCENARIOS } from '@/types/scenarios';
 import { buildEventPins, detectPatternHints } from '@/utils/events';
-import { Loader2, RefreshCw, Activity, TrendingUp, Waves, MapPin } from 'lucide-react';
+import { Loader2, RefreshCw, Activity, TrendingUp, Waves, MapPin, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const presetConfig = {
   momentum: { icon: Activity, label: 'Momentum' },
@@ -32,6 +34,10 @@ const Index = () => {
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
   const [showEvents, setShowEvents] = useState(true);
+  const [apiKey, setApiKey] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('agnic_api_key');
+  });
   
   const [parameters, setParameters] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
@@ -44,7 +50,16 @@ const Index = () => {
     return initial;
   });
 
-  const { candles, indicatorData, isLoading, refetch } = useMarketData(settings, selectedIndicators, parameters);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (apiKey) {
+      localStorage.setItem('agnic_api_key', apiKey);
+    } else {
+      localStorage.removeItem('agnic_api_key');
+    }
+  }, [apiKey]);
+
+  const { candles, indicatorData, isLoading, refetch } = useMarketData(settings, selectedIndicators, parameters, apiKey);
   const eventPins = useMemo(
     () => buildEventPins(candles, indicatorData, selectedIndicators),
     [candles, indicatorData, selectedIndicators]
@@ -53,6 +68,11 @@ const Index = () => {
     () => detectPatternHints(candles, indicatorData, selectedIndicators),
     [candles, indicatorData, selectedIndicators]
   );
+  const lastUpdatedText = useMemo(() => {
+    if (!candles.length) return '—';
+    const date = new Date(candles[candles.length - 1].timestamp);
+    return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }, [candles]);
 
   const handleParameterChange = (indicatorId: string, paramName: string, value: number) => {
     setParameters(prev => ({
@@ -79,9 +99,27 @@ const Index = () => {
     setActivePreset(null);
   };
 
+  const ensureApiKey = () => {
+    if (!apiKey) {
+      toast.error('Please set your API key to load live data.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSettingsChange = (next: MarketSettings) => {
+    if (!ensureApiKey()) return;
+    setSettings(next);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <Header settings={settings} onSettingsChange={setSettings} />
+      <Header 
+        settings={settings} 
+        onSettingsChange={handleSettingsChange} 
+        apiKey={apiKey} 
+        onApiKeyChange={setApiKey} 
+      />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl">
 
@@ -134,11 +172,11 @@ const Index = () => {
 
         {/* Scenario cards */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Scenario cards</p>
-              <p className="text-xs text-muted-foreground">Apply ready-made setups with a learning checklist.</p>
-            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Scenario cards</p>
+                <p className="text-xs text-muted-foreground">Apply ready-made setups with a learning checklist.</p>
+              </div>
             <Button 
               variant="ghost" 
               size="sm"
@@ -151,29 +189,71 @@ const Index = () => {
             >
               Reset
             </Button>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            {SCENARIOS.map((scenario, idx) => (
-              <button
-                key={scenario.id}
-                onClick={() => applyScenario(scenario.id)}
-                className={cn(
-                  'w-full text-left p-4 rounded-xl border transition-all',
-                  'bg-secondary/50 hover:border-primary/40 hover:shadow-sm',
-                  activeScenario === scenario.id && 'border-primary/60 shadow-md'
-                )}
-                style={{ animationDelay: `${idx * 0.05}s` }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-foreground">{scenario.title}</p>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    {scenario.settings.timeframe}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">{scenario.subtitle}</p>
-                <ul className="space-y-1.5 text-xs text-muted-foreground">
-                  {scenario.explainer.slice(0, 3).map((line, i) => (
-                    <li key={i} className="flex gap-2">
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {SCENARIOS.map((scenario, idx) => (
+                <button
+                  key={scenario.id}
+                  onClick={() => applyScenario(scenario.id)}
+                  className={cn(
+                    'w-full text-left p-4 rounded-xl border transition-all',
+                    'bg-secondary/50 hover:border-primary/40 hover:shadow-sm',
+                    activeScenario === scenario.id && 'border-primary/60 shadow-md'
+                  )}
+                  style={{ animationDelay: `${idx * 0.05}s` }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-foreground">{scenario.title}</p>
+                    <div className="flex items-center gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button
+                            className="p-1 rounded-full hover:bg-secondary/70 transition-colors"
+                            aria-label={`Learn more about ${scenario.title}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>{scenario.title}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-3 text-sm text-muted-foreground">
+                            <p>{scenario.subtitle}</p>
+                            {scenario.details && <p>{scenario.details}</p>}
+                            {scenario.explainer?.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-1">What to watch:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                  {scenario.explainer.map((line, i) => (
+                                    <li key={i}>{line}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {scenario.examples?.length ? (
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-1">Examples:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                  {scenario.examples.map((ex, i) => (
+                                    <li key={i}>{ex}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {scenario.settings.timeframe}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">{scenario.subtitle}</p>
+                  <ul className="space-y-1.5 text-xs text-muted-foreground">
+                    {scenario.explainer.slice(0, 3).map((line, i) => (
+                      <li key={i} className="flex gap-2">
                       <span className="text-primary mt-0.5">•</span>
                       <span className="leading-snug">{line}</span>
                     </li>
@@ -209,7 +289,9 @@ const Index = () => {
                     {settings.timeframe}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[11px] text-muted-foreground">Updated: {lastUpdatedText}</span>
+                  <div className="flex items-center gap-1">
                   {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((preset) => {
                     const config = presetConfig[preset];
                     const Icon = config.icon;
@@ -241,12 +323,16 @@ const Index = () => {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={refetch}
+                    onClick={() => {
+                      if (!ensureApiKey()) return;
+                      refetch();
+                    }}
                     disabled={isLoading}
                     className="h-7 px-2"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                   </Button>
+                  </div>
                 </div>
               </div>
               

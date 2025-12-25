@@ -1,6 +1,7 @@
 import { Activity, TrendingUp, Waves, Check, Info } from 'lucide-react';
+import { useState } from 'react';
 import { INDICATOR_CONFIGS, IndicatorConfig } from '@/types/indicators';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface IndicatorSelectorProps {
@@ -36,6 +37,8 @@ const categoryConfig = {
 };
 
 const IndicatorSelector = ({ selectedIndicators, onSelectionChange }: IndicatorSelectorProps) => {
+  const [openIndicator, setOpenIndicator] = useState<string | null>(null);
+
   const toggleIndicator = (id: string) => {
     if (selectedIndicators.includes(id)) {
       onSelectionChange(selectedIndicators.filter(i => i !== id));
@@ -78,37 +81,58 @@ const IndicatorSelector = ({ selectedIndicators, onSelectionChange }: IndicatorS
                 {indicators.map((indicator) => {
                   const isSelected = selectedIndicators.includes(indicator.id);
                   return (
-                    <Tooltip key={indicator.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => toggleIndicator(indicator.id)}
-                          className={cn(
-                            'relative px-3 py-2 rounded-lg text-left text-sm transition-all duration-200',
-                            'border hover:scale-[1.02] active:scale-[0.98]',
-                            isSelected
-                              ? `${config.bgColor} ${config.borderColor} ${config.color}`
-                              : 'bg-secondary/50 border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{indicator.name}</span>
+                    <div key={indicator.id} className="relative">
+                      <button
+                        onClick={() => toggleIndicator(indicator.id)}
+                        className={cn(
+                          'relative w-full px-3 py-2 rounded-lg text-left text-sm transition-all duration-200',
+                          'border hover:scale-[1.02] active:scale-[0.98]',
+                          isSelected
+                            ? `${config.bgColor} ${config.borderColor} ${config.color}`
+                            : 'bg-secondary/50 border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{indicator.name}</span>
+                          <div className="flex items-center gap-1">
+                            <Dialog open={openIndicator === indicator.id} onOpenChange={(open) => setOpenIndicator(open ? indicator.id : null)}>
+                              <DialogTrigger asChild>
+                                <button
+                                  className="p-1 rounded-full hover:bg-secondary/60"
+                                  aria-label={`Learn more about ${indicator.name}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>{indicator.name}</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-3 text-sm text-muted-foreground">
+                                  <p>{indicator.description}</p>
+                                  {indicator.details && <p>{indicator.details}</p>}
+                                  {indicator.examples && indicator.examples.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-foreground mb-1">Examples</p>
+                                      <ul className="list-disc list-inside space-y-1 text-xs">
+                                        {indicator.examples.map((ex, i) => (
+                                          <li key={i}>{ex}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-destructive/80">Common mistake: {indicator.commonMistakes}</p>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                             {isSelected && (
                               <Check className="w-3.5 h-3.5" />
                             )}
                           </div>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[300px] p-4 space-y-2">
-                        <p className="font-medium text-foreground">{indicator.name}</p>
-                        <p className="text-sm text-muted-foreground">{indicator.description}</p>
-                        <div className="pt-2 border-t border-border">
-                          <div className="flex items-start gap-2">
-                            <Info className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                            <p className="text-xs text-destructive/80">{indicator.commonMistakes}</p>
-                          </div>
                         </div>
-                      </TooltipContent>
-                    </Tooltip>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
