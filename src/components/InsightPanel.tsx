@@ -150,6 +150,17 @@ const InsightPanel = ({ selectedIndicators, indicatorData, candles, parameters, 
           }
           break;
         }
+        case 'support_resistance': {
+          // Since we don't plot S/R yet, provide basic guidance
+          insights.push({
+            indicator: 'Support/Resistance',
+            title: 'Use recent swing highs/lows as zones',
+            description: 'Look for multiple touches and reactions in price to mark support (buyers) and resistance (sellers). Breaks and retests often matter more than first touch.',
+            sentiment: 'neutral',
+            warning: 'Treat S/R as zones, not exact prices. Price can overshoot before reversing.'
+          });
+          break;
+        }
       }
     });
 
