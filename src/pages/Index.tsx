@@ -59,7 +59,7 @@ const Index = () => {
     }
   }, [apiKey]);
 
-  const { candles, indicatorData, isLoading, refetch } = useMarketData(settings, selectedIndicators, parameters, apiKey);
+  const { candles, indicatorData, isLoading, error, refetch } = useMarketData(settings, selectedIndicators, parameters, apiKey);
   const eventPins = useMemo(
     () => buildEventPins(candles, indicatorData, selectedIndicators),
     [candles, indicatorData, selectedIndicators]
@@ -341,6 +341,13 @@ const Index = () => {
                   <div className="text-center">
                     <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
                     <p className="text-xs text-muted-foreground">Loading...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-semibold text-destructive">API Error</p>
+                    <p className="text-xs text-muted-foreground">{error}</p>
                   </div>
                 </div>
               ) : (

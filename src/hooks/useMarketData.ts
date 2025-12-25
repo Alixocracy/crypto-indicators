@@ -30,6 +30,7 @@ export const useMarketData = (
     calculateIndicators(DEFAULT_CANDLES, selectedIndicators, parameters)
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRateLimitedRef = useRef(false);
   const candlesRef = useRef<CandleData[]>([]);
@@ -58,6 +59,7 @@ export const useMarketData = (
 
     lastRequestTime = now;
     setIsLoading(true);
+    setError(null);
 
     try {
       const exchange = exchangeMap[settings.exchange] || 'kraken';
@@ -113,6 +115,7 @@ export const useMarketData = (
     } catch (error) {
       console.error('Error fetching market data:', error);
       const message = error instanceof Error ? error.message : 'Failed to load data';
+      setError(message);
       toast.error(`API error: ${message}`);
     } finally {
       setIsLoading(false);
@@ -151,5 +154,5 @@ export const useMarketData = (
     }
   }, [candles, selectedIndicators, parameters]);
 
-  return { candles, indicatorData, isLoading, refetch: () => fetchData(true) };
+  return { candles, indicatorData, isLoading, error, refetch: () => fetchData(true) };
 };
