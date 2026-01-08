@@ -18,12 +18,77 @@ const exchangeMap: Record<string, string> = {
 };
 
 const PROXY_ENDPOINT = 'https://pabyskwdxspzcsjqqlxv.supabase.co/functions/v1/trading-proxy';
+const DIRECT_CANDLES_ENDPOINT = 'https://api.agnichub.xyz/v1/custom/trading-indicators/candles';
+const SIGN_PAYMENT_ENDPOINT = 'https://api.agnicpay.xyz/api/sign-payment';
+
+type PaymentRequirements = {
+  x402Version?: number;
+  accepts?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+};
+
+const callX402WithOAuth = async (
+  url: string,
+  payload: Record<string, unknown>,
+  oauthToken: string
+) => {
+  const baseHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  const initial = await fetch(url, {
+    method: 'POST',
+    headers: baseHeaders,
+    body: JSON.stringify(payload),
+  });
+
+  if (initial.status !== 402) {
+    return initial;
+  }
+
+  const paymentRequirements = (await initial.json()) as PaymentRequirements;
+  const signResponse = await fetch(SIGN_PAYMENT_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      ...baseHeaders,
+      'Authorization': `Bearer ${oauthToken}`,
+    },
+    body: JSON.stringify({
+      paymentRequirements,
+      requestData: {
+        url,
+        method: 'POST',
+      },
+    }),
+  });
+
+  if (!signResponse.ok) {
+    const errorText = await signResponse.text();
+    throw new Error(`Payment signing failed: ${signResponse.status} ${errorText}`);
+  }
+
+  const signData = await signResponse.json();
+  const paymentHeader = signData?.paymentHeader as string | undefined;
+  if (!paymentHeader) {
+    throw new Error('Payment signing failed: missing paymentHeader');
+  }
+
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      ...baseHeaders,
+      'X-Payment': paymentHeader,
+    },
+    body: JSON.stringify(payload),
+  });
+};
 
 export const useMarketData = (
   settings: MarketSettings,
   selectedIndicators: string[],
   parameters: Record<string, Record<string, number>>,
-  apiKey: string | null
+  apiKey: string | null,
+  oauthToken?: string | null
 ) => {
   const [candles, setCandles] = useState<CandleData[]>(DEFAULT_CANDLES);
   const [indicatorData, setIndicatorData] = useState<Record<string, Record<string, (number | null)[]>>>(() =>
@@ -39,7 +104,7 @@ export const useMarketData = (
   candlesRef.current = candles;
 
   const fetchData = useCallback(async (force = false) => {
-    if (!apiKey) {
+    if (!apiKey && !oauthToken) {
       // No API key: keep showing defaults
       return;
     }
@@ -74,14 +139,24 @@ export const useMarketData = (
 
       console.log('Fetching candles via proxy:', candlesPayload);
 
-      const response = await fetch(PROXY_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Agnic-Token': apiKey,
-        },
-        body: JSON.stringify(candlesPayload),
-      });
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (apiKey) {
+        headers['X-Agnic-Token'] = apiKey;
+      } else if (oauthToken) {
+        headers['Authorization'] = `Bearer ${oauthToken}`;
+      }
+
+      const endpoint = apiKey ? PROXY_ENDPOINT : DIRECT_CANDLES_ENDPOINT;
+      const response = apiKey
+        ? await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(candlesPayload),
+          })
+        : await callX402WithOAuth(endpoint, candlesPayload, oauthToken ?? '');
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -120,11 +195,11 @@ export const useMarketData = (
     } finally {
       setIsLoading(false);
     }
-  }, [settings, selectedIndicators, parameters, apiKey]);
+  }, [settings, selectedIndicators, parameters, apiKey, oauthToken]);
 
   // Debounced effect for settings changes
   useEffect(() => {
-    if (!apiKey) {
+    if (!apiKey && !oauthToken) {
       setIsLoading(false);
       return;
     }
@@ -142,7 +217,7 @@ export const useMarketData = (
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [fetchData, apiKey]);
+  }, [fetchData, apiKey, oauthToken]);
 
   // Recompute indicators when candles/selection/parameters change (keeps defaults useful)
   useEffect(() => {

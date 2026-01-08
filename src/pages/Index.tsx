@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useAuth } from '@/wallet-widget/AuthContext';
 
 const presetConfig = {
   momentum: { icon: Activity, label: 'Momentum' },
@@ -36,8 +37,10 @@ const Index = () => {
   const [showEvents, setShowEvents] = useState(true);
   const [apiKey, setApiKey] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('agnic_api_key');
+    const storedKey = localStorage.getItem('agnic_api_key');
+    return storedKey?.trim() ? storedKey : null;
   });
+  const { getToken } = useAuth();
   
   const [parameters, setParameters] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
@@ -52,14 +55,22 @@ const Index = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (apiKey) {
-      localStorage.setItem('agnic_api_key', apiKey);
+    if (apiKey?.trim()) {
+      localStorage.setItem('agnic_api_key', apiKey.trim());
     } else {
       localStorage.removeItem('agnic_api_key');
     }
   }, [apiKey]);
 
-  const { candles, indicatorData, isLoading, error, refetch } = useMarketData(settings, selectedIndicators, parameters, apiKey);
+  const oauthToken = getToken();
+
+  const { candles, indicatorData, isLoading, error, refetch } = useMarketData(
+    settings,
+    selectedIndicators,
+    parameters,
+    apiKey,
+    oauthToken
+  );
   const eventPins = useMemo(
     () => buildEventPins(candles, indicatorData, selectedIndicators),
     [candles, indicatorData, selectedIndicators]
@@ -100,8 +111,8 @@ const Index = () => {
   };
 
   const ensureApiKey = () => {
-    if (!apiKey) {
-      toast.error('Please set your API key to load live data.');
+    if (!apiKey && !oauthToken) {
+      toast.error('Please set your API key or login to load live data.');
       return false;
     }
     return true;

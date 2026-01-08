@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TrendingUp, Sparkles, Info, KeyRound, ShieldCheck } from 'lucide-react';
+import { TrendingUp, Sparkles, Info, KeyRound, ShieldCheck, X } from 'lucide-react';
 import { MarketSettings } from '@/types/indicators';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -9,12 +9,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { COINS, EXCHANGES, TIMEFRAMES } from '@/types/indicators';
 import { Slider } from './ui/slider';
+import WalletWidget from '@/wallet-widget/WalletWidget';
 
 interface HeaderProps {
   settings: MarketSettings;
   onSettingsChange: (settings: MarketSettings) => void;
   apiKey: string | null;
-  onApiKeyChange: (key: string) => void;
+  onApiKeyChange: (key: string | null) => void;
 }
 
 const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderProps) => {
@@ -26,6 +27,11 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
     if (!draftKey.trim()) return;
     onApiKeyChange(draftKey.trim());
     setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    onApiKeyChange(null);
+    setDraftKey('');
   };
 
   const maskedKey = apiKey ? `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}` : 'Not set';
@@ -57,6 +63,16 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
             <span className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${hasKey ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600' : 'bg-destructive/10 border-destructive/40 text-destructive'}`}>
               <ShieldCheck className="w-3.5 h-3.5" />
               {hasKey ? `Key: ${maskedKey}` : 'API key missing'}
+              {hasKey && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="ml-1 rounded-full hover:bg-emerald-500/20 p-0.5 transition-colors"
+                  aria-label="Clear API key"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </span>
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -66,6 +82,7 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                   {apiKey ? 'Update API Key' : 'Set API Key'}
                 </Button>
               </DialogTrigger>
+              <WalletWidget connectLabel="Login with AgnicPay" />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="p-1 rounded-full hover:bg-secondary/70 transition-colors" aria-label="How to get API key">
@@ -73,7 +90,7 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="center" sideOffset={8} className="max-w-xs text-xs z-50">
-                  Create a wallet at AgnicPay.xyz, generate an API key, then paste it here to fetch live candles.
+                  Create a wallet at AgnicPay.xyz or login to set your API key, then fetch live candles.
                 </TooltipContent>
               </Tooltip>
               <DialogContent>
