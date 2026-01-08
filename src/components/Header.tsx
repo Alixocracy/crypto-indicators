@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { COINS, EXCHANGES, TIMEFRAMES } from '@/types/indicators';
 import { Slider } from './ui/slider';
 import WalletWidget from '@/wallet-widget/WalletWidget';
+import { useAuth } from '@/wallet-widget/AuthContext';
 
 interface HeaderProps {
   settings: MarketSettings;
@@ -22,6 +23,7 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
   const [isOpen, setIsOpen] = useState(false);
   const [draftKey, setDraftKey] = useState(apiKey || '');
   const [candleDisplay, setCandleDisplay] = useState(settings.candleLimit);
+  const { isAuthenticated } = useAuth();
 
   const handleSave = () => {
     if (!draftKey.trim()) return;
@@ -60,62 +62,67 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
           </div>
 
           <div className="flex items-center flex-wrap gap-2 justify-start md:justify-end">
-            <span className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${hasKey ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600' : 'bg-destructive/10 border-destructive/40 text-destructive'}`}>
-              <ShieldCheck className="w-3.5 h-3.5" />
-              {hasKey ? `Key: ${maskedKey}` : 'API key missing'}
-              {hasKey && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="ml-1 rounded-full hover:bg-emerald-500/20 p-0.5 transition-colors"
-                  aria-label="Clear API key"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </span>
-
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
-                  <KeyRound className="w-3.5 h-3.5" />
-                  {apiKey ? 'Update API Key' : 'Set API Key'}
-                </Button>
-              </DialogTrigger>
-              <WalletWidget connectLabel="Login with AgnicPay" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="p-1 rounded-full hover:bg-secondary/70 transition-colors" aria-label="How to get API key">
-                    <Info className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align="center" sideOffset={8} className="max-w-xs text-xs z-50">
-                  Create a wallet at AgnicPay.xyz or login to set your API key, then fetch live candles.
-                </TooltipContent>
-              </Tooltip>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Set API Key</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-2">
-                  <Label htmlFor="api-key">Your provider API key</Label>
-                  <Input
-                    id="api-key"
-                    type="password"
-                    placeholder="Enter API key"
-                    value={draftKey}
-                    onChange={(e) => setDraftKey(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Stored locally in your browser. Required to fetch market data.
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button variant="secondary" onClick={() => setIsOpen(false)} size="sm">Cancel</Button>
-                  <Button onClick={handleSave} size="sm">Save</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            {!isAuthenticated && (
+              <>
+                <span className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${hasKey ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600' : 'bg-destructive/10 border-destructive/40 text-destructive'}`}>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {hasKey ? `Key: ${maskedKey}` : 'API key missing'}
+                  {hasKey && (
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      className="ml-1 rounded-full hover:bg-emerald-500/20 p-0.5 transition-colors"
+                      aria-label="Clear API key"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </span>
+                <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
+                      <KeyRound className="w-3.5 h-3.5" />
+                      {apiKey ? 'Update API Key' : 'Set your API key'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Set API Key</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                      <Label htmlFor="api-key">Your provider API key</Label>
+                      <Input
+                        id="api-key"
+                        type="password"
+                        placeholder="Enter API key"
+                        value={draftKey}
+                        onChange={(e) => setDraftKey(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Stored locally in your browser. Required to fetch market data.
+                      </p>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="secondary" onClick={() => setIsOpen(false)} size="sm">Cancel</Button>
+                      <Button onClick={handleSave} size="sm">Save</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <span className="text-[11px] text-muted-foreground">or</span>
+                <WalletWidget connectLabel="Login with AgnicPay" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="p-1 rounded-full hover:bg-secondary/70 transition-colors" aria-label="How to get API key">
+                      <Info className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="center" sideOffset={8} className="max-w-xs text-xs z-50">
+                    Create a wallet at AgnicPay.xyz or login with AgnicPay, then fetch live candles.
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            )}
+            {isAuthenticated && <WalletWidget />}
           </div>
         </div>
 

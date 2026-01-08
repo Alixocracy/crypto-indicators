@@ -152,12 +152,18 @@ const WalletWidget: React.FC<WalletWidgetProps> = ({
         <button
           onClick={login}
           disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-60"
+          className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-60"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16l4-4m0 0l-4-4m4 4H8m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-          </svg>
-          {connectLabel}
+          <span className="text-white text-sm font-semibold">Login with</span>
+          <span className="flex items-center gap-2">
+            <span className="w-7 h-7 grid place-items-center">
+              <span className="w-4 h-4 rotate-45 rounded-[1px] bg-[#7ecd33] shadow-[0_4px_12px_rgba(0,0,0,0.35)]" />
+            </span>
+            <span className="inline-flex items-baseline gap-0.5 text-sm font-semibold">
+              <span className="text-white">Agnic</span>
+              <span className="text-[#7ecd33]">Pay</span>
+            </span>
+          </span>
         </button>
       </div>
     );
