@@ -117,7 +117,7 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" align="center" sideOffset={8} className="max-w-xs text-xs z-50">
-                    Create a wallet at AgnicPay.xyz or login with AgnicPay, then fetch live candles.
+                    Create a wallet at Agnic.ai or login with AgnicPay, then fetch live candles.
                   </TooltipContent>
                 </Tooltip>
               </>

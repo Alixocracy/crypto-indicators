@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-agnic-token',
 };
 
-const AGNIC_ENDPOINT = 'https://api.agnicpay.xyz/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST';
+const AGNIC_ENDPOINT = 'https://api.agnic.ai/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST';
 
 serve(async (req) => {
   // Handle CORS preflight requests

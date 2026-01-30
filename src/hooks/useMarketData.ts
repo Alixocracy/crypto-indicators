@@ -19,7 +19,7 @@ const exchangeMap: Record<string, string> = {
 
 const PROXY_ENDPOINT = 'https://pabyskwdxspzcsjqqlxv.supabase.co/functions/v1/trading-proxy';
 const DIRECT_CANDLES_ENDPOINT = 'https://api.agnichub.xyz/v1/custom/trading-indicators/candles';
-const SIGN_PAYMENT_ENDPOINT = 'https://api.agnicpay.xyz/api/sign-payment';
+const SIGN_PAYMENT_ENDPOINT = 'https://api.agnic.ai/api/sign-payment';
 
 type PaymentRequirements = {
   x402Version?: number;

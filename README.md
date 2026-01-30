@@ -80,7 +80,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 
 
-curl -X POST "https://api.agnicpay.xyz/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/indicators&method=POST" \
+curl -X POST "https://api.agnic.ai/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/indicators&method=POST" \
   -H "X-Agnic-Token: agnic_tok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkaWQ6cHJpdnk6Y21qbGxsMXFsMDRiMmp3MGNvZTh2ZHQxMyIsIm1heFBlclRyYW5zYWN0aW9uIjowLjIsImRhaWx5TGltaXQiOjMsIm1vbnRobHlMaW1pdCI6MTAsIm5ldHdvcmtzIjpbImJhc2UiLCJzb2xhbmEiXSwidHlwZSI6Im44bl9hdXRvbWF0aW9uIiwiY3JlYXRlZEF0IjoxNzY2NzA2MDAxMDMzLCJ0b2tlbklkIjoidG9rZW5fMTc2NjcwNjAwMTAzM18yZjA3MmIyZCIsImlhdCI6MTc2NjcwNjAwMSwiZXhwIjoxNzk4MjQyMDAxfQ.azOkloqbeVNFUoKAdiHi6SCZBl4Mgf3hDaa2PS045co" \
   -H "Content-Type: application/json" \
   -d '{
@@ -107,7 +107,7 @@ curl -X POST "https://api.agnicpay.xyz/api/x402/fetch?url=https://api.agnichub.x
 
 
 
-curl -X POST "https://api.agnicpay.xyz/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST" \
+curl -X POST "https://api.agnic.ai/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST" \
   -H "X-Agnic-Token: agnic_tok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkaWQ6cHJpdnk6Y21qbGxsMXFsMDRiMmp3MGNvZTh2ZHQxMyIsIm1heFBlclRyYW5zYWN0aW9uIjowLjIsImRhaWx5TGltaXQiOjMsIm1vbnRobHlMaW1pdCI6MTAsIm5ldHdvcmtzIjpbImJhc2UiLCJzb2xhbmEiXSwidHlwZSI6Im44bl9hdXRvbWF0aW9uIiwiY3JlYXRlZEF0IjoxNzY2NzA2MDAxMDMzLCJ0b2tlbklkIjoidG9rZW5fMTc2NjcwNjAwMTAzM18yZjA3MmIyZCIsImlhdCI6MTc2NjcwNjAwMSwiZXhwIjoxNzk4MjQyMDAxfQ.azOkloqbeVNFUoKAdiHi6SCZBl4Mgf3hDaa2PS045co" \
   -H "Content-Type: application/json" \
   -d '{
