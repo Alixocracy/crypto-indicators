@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { TrendingUp, Sparkles, Info, KeyRound, ShieldCheck, X } from 'lucide-react';
-import { MarketSettings } from '@/types/indicators';
-import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { COINS, EXCHANGES, TIMEFRAMES } from '@/types/indicators';
-import { Slider } from './ui/slider';
-import WalletWidget from '@/wallet-widget/WalletWidget';
-import { useAuth } from '@/wallet-widget/AuthContext';
+import { useState } from "react";
+import { TrendingUp, Sparkles, Info, KeyRound, ShieldCheck, X } from "lucide-react";
+import { MarketSettings } from "@/types/indicators";
+import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { COINS, EXCHANGES, TIMEFRAMES } from "@/types/indicators";
+import { Slider } from "./ui/slider";
+import WalletWidget from "@/wallet-widget/WalletWidget";
+import { useAuth } from "@/wallet-widget/AuthContext";
 
 interface HeaderProps {
   settings: MarketSettings;
@@ -21,7 +21,7 @@ interface HeaderProps {
 
 const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [draftKey, setDraftKey] = useState(apiKey || '');
+  const [draftKey, setDraftKey] = useState(apiKey || "");
   const [candleDisplay, setCandleDisplay] = useState(settings.candleLimit);
   const { isAuthenticated } = useAuth();
 
@@ -33,10 +33,10 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
 
   const handleClear = () => {
     onApiKeyChange(null);
-    setDraftKey('');
+    setDraftKey("");
   };
 
-  const maskedKey = apiKey ? `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}` : 'Not set';
+  const maskedKey = apiKey ? `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}` : "Not set";
   const hasKey = Boolean(apiKey);
 
   return (
@@ -52,7 +52,7 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-semibold text-foreground">Indicator Playground</h1>
+                <h1 className="text-xl font-semibold text-foreground">Indicators Playground</h1>
                 <span className="text-[11px] px-2 py-1 rounded-full bg-secondary/80 text-muted-foreground border border-border/60">
                   No login needed
                 </span>
@@ -64,9 +64,11 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
           <div className="flex items-center flex-wrap gap-2 justify-start md:justify-end">
             {!isAuthenticated && (
               <>
-                <span className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${hasKey ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600' : 'bg-destructive/10 border-destructive/40 text-destructive'}`}>
+                <span
+                  className={`text-[11px] px-2 py-1 rounded-full border flex items-center gap-1 ${hasKey ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600" : "bg-destructive/10 border-destructive/40 text-destructive"}`}
+                >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  {hasKey ? `Key: ${maskedKey}` : 'API key missing'}
+                  {hasKey ? `Key: ${maskedKey}` : "API key missing"}
                   {hasKey && (
                     <button
                       type="button"
@@ -82,7 +84,7 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
                       <KeyRound className="w-3.5 h-3.5" />
-                      {apiKey ? 'Update API Key' : 'Set your API key'}
+                      {apiKey ? "Update API Key" : "Set your API key"}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -103,8 +105,12 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                       </p>
                     </div>
                     <DialogFooter>
-                      <Button variant="secondary" onClick={() => setIsOpen(false)} size="sm">Cancel</Button>
-                      <Button onClick={handleSave} size="sm">Save</Button>
+                      <Button variant="secondary" onClick={() => setIsOpen(false)} size="sm">
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSave} size="sm">
+                        Save
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -112,7 +118,10 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                 <WalletWidget connectLabel="Login with AgnicPay" />
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="p-1 rounded-full hover:bg-secondary/70 transition-colors" aria-label="How to get API key">
+                    <button
+                      className="p-1 rounded-full hover:bg-secondary/70 transition-colors"
+                      aria-label="How to get API key"
+                    >
                       <Info className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </TooltipTrigger>
@@ -130,7 +139,9 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
           <div className="w-full overflow-x-auto">
             <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-card/80 px-4 py-3 shadow-sm backdrop-blur">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/30">Control center</span>
+                <span className="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/30">
+                  Control center
+                </span>
               </div>
               <div className="flex items-center gap-2 min-w-[90px]">
                 <Label className="text-[11px] text-muted-foreground">Coin</Label>
@@ -140,33 +151,45 @@ const Header = ({ settings, onSettingsChange, apiKey, onApiKeyChange }: HeaderPr
                   </SelectTrigger>
                   <SelectContent>
                     {COINS.map((coin) => (
-                      <SelectItem key={coin} value={coin}>{coin}</SelectItem>
+                      <SelectItem key={coin} value={coin}>
+                        {coin}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center gap-2 min-w-[110px]">
                 <Label className="text-[11px] text-muted-foreground">Exchange</Label>
-                <Select value={settings.exchange} onValueChange={(value) => onSettingsChange({ ...settings, exchange: value })}>
+                <Select
+                  value={settings.exchange}
+                  onValueChange={(value) => onSettingsChange({ ...settings, exchange: value })}
+                >
                   <SelectTrigger className="h-8 w-[110px] bg-secondary/60 border-primary/30 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {EXCHANGES.map((ex) => (
-                      <SelectItem key={ex} value={ex}>{ex}</SelectItem>
+                      <SelectItem key={ex} value={ex}>
+                        {ex}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center gap-2 min-w-[100px]">
                 <Label className="text-[11px] text-muted-foreground">Timeframe</Label>
-                <Select value={settings.timeframe} onValueChange={(value) => onSettingsChange({ ...settings, timeframe: value })}>
+                <Select
+                  value={settings.timeframe}
+                  onValueChange={(value) => onSettingsChange({ ...settings, timeframe: value })}
+                >
                   <SelectTrigger className="h-8 w-[90px] bg-secondary/60 border-primary/30 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {TIMEFRAMES.map((tf) => (
-                      <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+                      <SelectItem key={tf} value={tf}>
+                        {tf}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
