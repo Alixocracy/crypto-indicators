@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   initiateLogin,
   handleCallback,
@@ -35,6 +36,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +69,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (result.success) {
           setIsAuthenticated(true);
           setError(null);
-          window.location.href = '/';
+          setIsLoading(false);
+          navigate('/', { replace: true });
           return;
         } else {
           setError(result.error || 'Login failed');
           setIsAuthenticated(false);
-          window.location.href = '/';
+          setIsLoading(false);
+          navigate('/', { replace: true });
           return;
         }
       }
@@ -87,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     checkAuth();
-  }, [refreshBalance]);
+  }, [refreshBalance, navigate]);
 
   const login = useCallback(async () => {
     setError(null);
