@@ -13,6 +13,7 @@ import {
   getAccessToken,
   fetchWalletBalance,
   WalletBalance,
+  readOAuthLog,
 } from './authService';
 
 interface AuthContextType {
@@ -54,6 +55,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     async function checkAuth() {
+      const bufferedLogs = readOAuthLog();
+      if (bufferedLogs.length) {
+        console.log('[OAuth] Buffered logs', bufferedLogs);
+      }
+
       if (isCallbackUrl()) {
         setIsLoading(true);
         const result = await handleCallback();

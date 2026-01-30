@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
   accessToken: 'agnic_access_token',
   codeVerifier: 'agnic_code_verifier',
   state: 'agnic_oauth_state',
+  debugLog: 'agnic_oauth_log',
 };
 
 export interface TokenResponse {
@@ -28,6 +29,39 @@ function generateRandomString(length: number): string {
   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
   const randomValues = crypto.getRandomValues(new Uint8Array(length));
   return Array.from(randomValues, (byte) => charset[byte % charset.length]).join('');
+}
+
+function logOAuth(message: string, data?: Record<string, unknown>): void {
+  const entry = {
+    ts: new Date().toISOString(),
+    message,
+    data: data ?? null,
+  };
+
+  try {
+    const existing = sessionStorage.getItem(STORAGE_KEYS.debugLog);
+    const parsed = existing ? JSON.parse(existing) : [];
+    const next = Array.isArray(parsed) ? [...parsed, entry].slice(-50) : [entry];
+    sessionStorage.setItem(STORAGE_KEYS.debugLog, JSON.stringify(next));
+  } catch {
+    // Ignore storage failures (e.g., privacy mode).
+  }
+
+  if (data) {
+    console.log(message, data);
+  } else {
+    console.log(message);
+  }
+}
+
+export function readOAuthLog(): Array<{ ts: string; message: string; data: unknown }> {
+  try {
+    const existing = sessionStorage.getItem(STORAGE_KEYS.debugLog);
+    const parsed = existing ? JSON.parse(existing) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 async function sha256(plain: string): Promise<ArrayBuffer> {
@@ -74,7 +108,7 @@ export async function initiateLogin(): Promise<void> {
 
   const authUrl = `${OAUTH_CONFIG.authorizationUrl}?${params.toString()}`;
 
-  console.log('Initiating OAuth login:', {
+  logOAuth('[OAuth] Initiating login', {
     clientId: OAUTH_CONFIG.clientId,
     redirectUri: OAUTH_CONFIG.redirectUri
   });
@@ -85,7 +119,7 @@ export async function initiateLogin(): Promise<void> {
 export async function handleCallback(): Promise<{ success: boolean; error?: string }> {
   const urlParams = new URLSearchParams(window.location.search);
 
-  console.log('[OAuth] Callback hit', {
+  logOAuth('[OAuth] Callback hit', {
     pathname: window.location.pathname,
     search: window.location.search,
   });
@@ -101,7 +135,7 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
   const code = urlParams.get('code');
   const returnedState = urlParams.get('state');
 
-  console.log('[OAuth] Callback params', {
+  logOAuth('[OAuth] Callback params', {
     hasCode: !!code,
     hasState: !!returnedState,
   });
@@ -112,7 +146,7 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
   }
 
   const storedState = sessionStorage.getItem(STORAGE_KEYS.state);
-  console.log('[OAuth] State check', {
+  logOAuth('[OAuth] State check', {
     returnedState: returnedState ? `${returnedState.slice(0, 6)}…` : null,
     storedState: storedState ? `${storedState.slice(0, 6)}…` : null,
   });
@@ -122,14 +156,14 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
   }
 
   const codeVerifier = sessionStorage.getItem(STORAGE_KEYS.codeVerifier);
-  console.log('[OAuth] Code verifier present', { hasCodeVerifier: !!codeVerifier });
+  logOAuth('[OAuth] Code verifier present', { hasCodeVerifier: !!codeVerifier });
   if (!codeVerifier) {
     cleanupOAuthParams();
     return { success: false, error: 'Code verifier not found' };
   }
 
   try {
-    console.log('[OAuth] Exchanging code for token', {
+    logOAuth('[OAuth] Exchanging code for token', {
       tokenUrl: OAUTH_CONFIG.tokenUrl,
       redirectUri: OAUTH_CONFIG.redirectUri,
       clientId: OAUTH_CONFIG.clientId,
@@ -157,7 +191,7 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
     }
 
     const tokenData: TokenResponse = await response.json();
-    console.log('[OAuth] Token response received', {
+    logOAuth('[OAuth] Token response received', {
       hasAccessToken: !!tokenData?.access_token,
       tokenType: tokenData?.token_type ?? null,
       expiresIn: tokenData?.expires_in ?? null,
@@ -165,7 +199,7 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
     });
 
     sessionStorage.setItem(STORAGE_KEYS.accessToken, tokenData.access_token);
-    console.log('[OAuth] Access token stored', {
+    logOAuth('[OAuth] Access token stored', {
       accessTokenLength: tokenData?.access_token?.length ?? 0,
     });
 
