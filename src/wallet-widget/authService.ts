@@ -4,13 +4,11 @@
  */
 
 const OAUTH_CONFIG = {
-  authorizationUrl: 'https://app.agnicpay.xyz/oauth-consent',
-  tokenUrl: 'https://api.agnicpay.xyz/oauth/token',
-  clientId: 'myfit-check',
+  authorizationUrl: 'https://api.agnic.ai/oauth/authorize',
+  tokenUrl: 'https://api.agnic.ai/oauth/token',
+  clientId: 'app_a8fef46b314e5efb435fdeda',
   scopes: 'payments:sign balance:read',
-  get redirectUri() {
-    return `${window.location.origin}/callback`;
-  }
+  redirectUri: 'https://indicators.agnic.cloud/callback',
 };
 
 const STORAGE_KEYS = {
@@ -69,6 +67,7 @@ export async function initiateLogin(): Promise<void> {
     redirect_uri: OAUTH_CONFIG.redirectUri,
     state: state,
     scope: OAUTH_CONFIG.scopes,
+    response_type: 'code',
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
   });
@@ -216,7 +215,7 @@ export async function fetchWalletBalance(): Promise<WalletBalance | null> {
   if (!token) return null;
 
   try {
-    const response = await fetch('https://api.agnicpay.xyz/api/balance?network=base', {
+    const response = await fetch('https://api.agnic.ai/api/balance?network=base', {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -249,7 +248,7 @@ export async function fetchTransactions(limit = 10): Promise<TransactionsRespons
   if (!token) return null;
 
   try {
-    const response = await fetch(`https://api.agnicpay.xyz/api/transactions?limit=${limit}`, {
+    const response = await fetch(`https://api.agnic.ai/api/transactions?limit=${limit}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
