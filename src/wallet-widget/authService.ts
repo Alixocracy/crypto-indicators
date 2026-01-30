@@ -85,6 +85,11 @@ export async function initiateLogin(): Promise<void> {
 export async function handleCallback(): Promise<{ success: boolean; error?: string }> {
   const urlParams = new URLSearchParams(window.location.search);
 
+  console.log('[OAuth] Callback hit', {
+    pathname: window.location.pathname,
+    search: window.location.search,
+  });
+
   const error = urlParams.get('error');
   if (error) {
     const errorDescription = urlParams.get('error_description') || 'Authorization failed';
@@ -96,24 +101,40 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
   const code = urlParams.get('code');
   const returnedState = urlParams.get('state');
 
+  console.log('[OAuth] Callback params', {
+    hasCode: !!code,
+    hasState: !!returnedState,
+  });
+
   if (!code) {
     cleanupOAuthParams();
     return { success: false, error: 'No authorization code received' };
   }
 
   const storedState = sessionStorage.getItem(STORAGE_KEYS.state);
+  console.log('[OAuth] State check', {
+    returnedState: returnedState ? `${returnedState.slice(0, 6)}…` : null,
+    storedState: storedState ? `${storedState.slice(0, 6)}…` : null,
+  });
   if (returnedState !== storedState) {
     cleanupOAuthParams();
     return { success: false, error: 'State mismatch - possible CSRF attack' };
   }
 
   const codeVerifier = sessionStorage.getItem(STORAGE_KEYS.codeVerifier);
+  console.log('[OAuth] Code verifier present', { hasCodeVerifier: !!codeVerifier });
   if (!codeVerifier) {
     cleanupOAuthParams();
     return { success: false, error: 'Code verifier not found' };
   }
 
   try {
+    console.log('[OAuth] Exchanging code for token', {
+      tokenUrl: OAUTH_CONFIG.tokenUrl,
+      redirectUri: OAUTH_CONFIG.redirectUri,
+      clientId: OAUTH_CONFIG.clientId,
+    });
+
     const response = await fetch(OAUTH_CONFIG.tokenUrl, {
       method: 'POST',
       headers: {
@@ -136,8 +157,17 @@ export async function handleCallback(): Promise<{ success: boolean; error?: stri
     }
 
     const tokenData: TokenResponse = await response.json();
+    console.log('[OAuth] Token response received', {
+      hasAccessToken: !!tokenData?.access_token,
+      tokenType: tokenData?.token_type ?? null,
+      expiresIn: tokenData?.expires_in ?? null,
+      scope: tokenData?.scope ?? null,
+    });
 
     sessionStorage.setItem(STORAGE_KEYS.accessToken, tokenData.access_token);
+    console.log('[OAuth] Access token stored', {
+      accessTokenLength: tokenData?.access_token?.length ?? 0,
+    });
 
     console.log('OAuth login successful');
     cleanupOAuthParams();
