@@ -5,6 +5,7 @@ import ParameterSliders from '@/components/ParameterSliders';
 import CandlestickChart from '@/components/CandlestickChart';
 import InsightPanel from '@/components/InsightPanel';
 import ReadingsPanel from '@/components/ReadingsPanel';
+import AiAdvisorPanel from '@/components/AiAdvisorPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMarketData } from '@/hooks/useMarketData';
 import { MarketSettings, INDICATOR_CONFIGS, PRESETS } from '@/types/indicators';
@@ -35,6 +36,7 @@ const Index = () => {
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
   const [showEvents, setShowEvents] = useState(true);
+  const [showScenarioCards, setShowScenarioCards] = useState(true);
   const [apiKey, setApiKey] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     const storedKey = localStorage.getItem('agnic_api_key');
@@ -186,93 +188,111 @@ const Index = () => {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-sm font-semibold text-foreground">Scenario cards</p>
-                <p className="text-xs text-muted-foreground">Apply ready-made setups with a learning checklist.</p>
+                {showScenarioCards ? (
+                  <p className="text-xs text-muted-foreground">Apply ready-made setups with a learning checklist.</p>
+                ) : null}
               </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => {
-                setActiveScenario(null);
-                setSelectedIndicators(['rsi', 'sma']);
-                setActivePreset(null);
-              }}
-              className="text-xs"
-            >
-              Reset
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setActiveScenario(null);
+                  setSelectedIndicators(['rsi', 'sma']);
+                  setActivePreset(null);
+                }}
+                className="text-xs"
+              >
+                Reset
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowScenarioCards((prev) => !prev)}
+                className="text-xs"
+              >
+                {showScenarioCards ? 'Minimize' : 'Expand'}
+              </Button>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {SCENARIOS.map((scenario, idx) => (
-                <button
-                  key={scenario.id}
-                  onClick={() => applyScenario(scenario.id)}
-                  className={cn(
-                    'w-full text-left p-4 rounded-xl border transition-all',
-                    'bg-secondary/50 hover:border-primary/40 hover:shadow-sm',
-                    activeScenario === scenario.id && 'border-primary/60 shadow-md'
-                  )}
-                  style={{ animationDelay: `${idx * 0.05}s` }}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-foreground">{scenario.title}</p>
-                    <div className="flex items-center gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button
-                            className="p-1 rounded-full hover:bg-secondary/70 transition-colors"
-                            aria-label={`Learn more about ${scenario.title}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Info className="w-3.5 h-3.5 text-muted-foreground" />
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>{scenario.title}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-3 text-sm text-muted-foreground">
-                            <p>{scenario.subtitle}</p>
-                            {scenario.details && <p>{scenario.details}</p>}
-                            {scenario.explainer?.length > 0 && (
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-1">What to watch:</p>
-                                <ul className="list-disc list-inside space-y-1 text-xs">
-                                  {scenario.explainer.map((line, i) => (
-                                    <li key={i}>{line}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {scenario.examples?.length ? (
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-1">Examples:</p>
-                                <ul className="list-disc list-inside space-y-1 text-xs">
-                                  {scenario.examples.map((ex, i) => (
-                                    <li key={i}>{ex}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ) : null}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {scenario.settings.timeframe}
-                      </span>
+            </div>
+            {showScenarioCards ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                {SCENARIOS.map((scenario, idx) => (
+                  <button
+                    key={scenario.id}
+                    onClick={() => applyScenario(scenario.id)}
+                    className={cn(
+                      'w-full text-left p-4 rounded-xl border transition-all',
+                      'bg-secondary/50 hover:border-primary/40 hover:shadow-sm',
+                      activeScenario === scenario.id && 'border-primary/60 shadow-md'
+                    )}
+                    style={{ animationDelay: `${idx * 0.05}s` }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold text-foreground">{scenario.title}</p>
+                      <div className="flex items-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button
+                              className="p-1 rounded-full hover:bg-secondary/70 transition-colors"
+                              aria-label={`Learn more about ${scenario.title}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>{scenario.title}</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-3 text-sm text-muted-foreground">
+                              <p>{scenario.subtitle}</p>
+                              {scenario.details && <p>{scenario.details}</p>}
+                              {scenario.explainer?.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground mb-1">What to watch:</p>
+                                  <ul className="list-disc list-inside space-y-1 text-xs">
+                                    {scenario.explainer.map((line, i) => (
+                                      <li key={i}>{line}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {scenario.examples?.length ? (
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground mb-1">Examples:</p>
+                                  <ul className="list-disc list-inside space-y-1 text-xs">
+                                    {scenario.examples.map((ex, i) => (
+                                      <li key={i}>{ex}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ) : null}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {scenario.settings.timeframe}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">{scenario.subtitle}</p>
-                  <ul className="space-y-1.5 text-xs text-muted-foreground">
-                    {scenario.explainer.slice(0, 3).map((line, i) => (
-                      <li key={i} className="flex gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span className="leading-snug">{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              </button>
-            ))}
-          </div>
+                    <p className="text-xs text-muted-foreground mb-2">{scenario.subtitle}</p>
+                    <ul className="space-y-1.5 text-xs text-muted-foreground">
+                      {scenario.explainer.slice(0, 3).map((line, i) => (
+                        <li key={i} className="flex gap-2">
+                        <span className="text-primary mt-0.5">•</span>
+                        <span className="leading-snug">{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-muted/60 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+              Scenario cards hidden to maximize workspace.
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-12 gap-4">
@@ -385,12 +405,13 @@ const Index = () => {
           {/* Right Sidebar - Tabs */}
           <div className="col-span-12 lg:col-span-4">
             <div className="lg:sticky lg:top-4">
-              <Tabs defaultValue="insights" className="w-full">
-                <TabsList className="grid grid-cols-2 mb-3">
+              <Tabs defaultValue="advisor" className="w-full">
+                <TabsList className="grid grid-cols-3 mb-3">
                   <TabsTrigger value="insights">Insights</TabsTrigger>
                   <TabsTrigger value="readings">Readings</TabsTrigger>
+                  <TabsTrigger value="advisor">Ask me!</TabsTrigger>
                 </TabsList>
-                <TabsContent value="insights">
+                <TabsContent value="insights" forceMount className="data-[state=inactive]:hidden">
                   <InsightPanel 
                     selectedIndicators={selectedIndicators}
                     indicatorData={indicatorData}
@@ -399,8 +420,22 @@ const Index = () => {
                     patternHints={patternHints}
                   />
                 </TabsContent>
-                <TabsContent value="readings">
+                <TabsContent value="readings" forceMount className="data-[state=inactive]:hidden">
                   <ReadingsPanel candles={candles} indicatorData={indicatorData} />
+                </TabsContent>
+                <TabsContent value="advisor" forceMount className="data-[state=inactive]:hidden">
+                  <AiAdvisorPanel
+                    selectedIndicators={selectedIndicators}
+                    indicatorData={indicatorData}
+                    candles={candles}
+                    parameters={parameters}
+                    apiKey={apiKey}
+                    marketContext={{
+                      coin: settings.coin,
+                      exchange: settings.exchange,
+                      timeframe: settings.timeframe,
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
             </div>
