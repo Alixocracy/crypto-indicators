@@ -1,144 +1,191 @@
-# Welcome to your Lovable project
+# Agentic Crypto Indicators
 
-## Project info
+An advanced crypto market analysis workspace that combines live candle data, technical indicator computation, scenario-driven learning, wallet-gated data access, and an AI advisor that reasons over the active chart context.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+The project is built as an interactive analyst console rather than a static dashboard. Users can select markets, tune indicator parameters, inspect live readings, apply predefined trading-analysis scenarios, and ask an AI model to explain what the selected indicators imply in the current market context.
 
-## How can I edit this code?
+> Educational tool only. This application does not provide investment advice or trading signals.
 
-There are several ways of editing your application.
+## What It Does
 
-**Use Lovable**
+- Visualizes crypto OHLCV candles with selected technical overlays.
+- Computes technical indicators client-side from candle data for fast iteration.
+- Supports indicator presets for momentum, trend, and volatility analysis.
+- Provides scenario cards that load structured market-analysis workflows.
+- Detects contextual event pins and pattern hints from price and indicator behavior.
+- Integrates AgnicPay OAuth/API-token access for authenticated market data and paid x402-style API flows.
+- Includes an AI advisor that receives structured market context and responds with grounded, explainable analysis.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Agentic Layer
 
-Changes made via Lovable will be committed automatically to this repo.
+The strongest part of this project is the agentic workflow around the chart.
 
-**Use your preferred IDE**
+The AI advisor is not a generic chatbot bolted onto the UI. It receives a compact structured context built from the user's active workspace:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- selected indicators
+- current indicator parameters
+- latest valid indicator values
+- latest candle state
+- selected coin, exchange, and timeframe
+- user prompt
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+That context is injected into the model request as system-level grounding, forcing responses to refer to the active market and timeframe. The assistant is also instructed to avoid financial advice, ask clarifying questions when data is missing, and explain indicator behavior clearly.
 
-Follow these steps:
+This creates an analyst-in-the-loop experience:
+
+1. The user configures the market and indicators.
+2. The app fetches or falls back to candle data.
+3. Indicators are recalculated locally as parameters change.
+4. Pattern hints and event pins provide deterministic context.
+5. The AI advisor reasons over the current state and explains what matters.
+
+The result is a hybrid system: deterministic technical-analysis logic handles the data plane, while the AI layer handles interpretation, explanation, and user-specific follow-up questions.
+
+## Market Data and Payments
+
+The app supports two access paths:
+
+- API-key access through the Supabase `trading-proxy` function.
+- OAuth wallet access through AgnicPay, including payment signing when an upstream endpoint returns an HTTP `402 Payment Required` response.
+
+When using OAuth, the app can request candle data directly from the Agnic Hub trading-indicators endpoint. If the endpoint requires payment, the client asks AgnicPay to sign the payment requirements and retries the request with an `X-Payment` header.
+
+The wallet widget includes:
+
+- OAuth PKCE login flow
+- access-token storage in `sessionStorage`
+- wallet balance retrieval
+- reusable auth context
+- optional payment and webhook hooks
+
+## Indicators
+
+The project currently models a broad technical-analysis surface:
+
+- RSI
+- MACD
+- Stochastic Oscillator
+- Stoch RSI
+- OBV
+- SMA
+- EMA
+- ADX
+- Bollinger Bands
+- Support / Resistance
+- ATR
+
+Client-side calculations currently cover the implemented chart overlays and readings, including SMA, EMA, Bollinger Bands, RSI, and ATR. The indicator configuration layer is broader than the local calculation engine, which makes the app ready for deeper API-backed expansion.
+
+## Scenario Workflows
+
+Scenario cards turn the dashboard into a guided analysis environment. Each scenario applies a market setup, timeframe, candle depth, and relevant indicator set.
+
+Included workflows:
+
+- **Trend Reversal Anatomy**: EMA and RSI context for momentum shifts.
+- **Range Compression**: Bollinger Bands and ATR for volatility contraction.
+- **Momentum Checkup**: RSI, SMA, and EMA for short-term vs long-term balance.
+
+These scenarios are useful for onboarding, education, demos, and repeatable research workflows.
+
+## Tech Stack
+
+- Vite
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Radix UI primitives
+- Recharts
+- React Query
+- Supabase client
+- AgnicPay wallet/OAuth integration
+- Agnic AI chat completions API
+
+## Project Structure
+
+```text
+src/
+  components/          UI panels, chart, advisor, selectors, readings
+  hooks/               market-data loading and app hooks
+  integrations/        Supabase client and generated types
+  types/               indicator, market, and scenario models
+  utils/               indicator math, event pins, pattern hints
+  wallet-widget/       reusable AgnicPay auth and wallet components
+```
+
+## Getting Started
+
+Install dependencies:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Start the development server:
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Build for production:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-
-
-
-
-======
-
-
-
-
-curl -X POST "https://api.agnic.ai/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/indicators&method=POST" \
-  -H "X-Agnic-Token: agnic_tok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkaWQ6cHJpdnk6Y21qbGxsMXFsMDRiMmp3MGNvZTh2ZHQxMyIsIm1heFBlclRyYW5zYWN0aW9uIjowLjIsImRhaWx5TGltaXQiOjMsIm1vbnRobHlMaW1pdCI6MTAsIm5ldHdvcmtzIjpbImJhc2UiLCJzb2xhbmEiXSwidHlwZSI6Im44bl9hdXRvbWF0aW9uIiwiY3JlYXRlZEF0IjoxNzY2NzA2MDAxMDMzLCJ0b2tlbklkIjoidG9rZW5fMTc2NjcwNjAwMTAzM18yZjA3MmIyZCIsImlhdCI6MTc2NjcwNjAwMSwiZXhwIjoxNzk4MjQyMDAxfQ.azOkloqbeVNFUoKAdiHi6SCZBl4Mgf3hDaa2PS045co" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "coin": "BTC",
-    "exchange": "kraken",
-    "interval": "1h",
-    "limit": 300,
-    "indicators": [
-      { "name": "RSI", "period": 14 },
-      { "name": "MACD", "fast": 12, "slow": 26, "signal": 9 },
-      { "name": "SMA", "period": 50 },
-      { "name": "EMA", "period": 21 },
-      { "name": "BBANDS", "period": 20, "stddev": 2 },
-      { "name": "ADX", "period": 14 },
-      { "name": "ATR", "period": 14 },
-      { "name": "OBV" },
-      { "name": "STOCH", "kPeriod": 14, "dPeriod": 3, "smoothing": 3 },
-      { "name": "STOCHRSI", "period": 14 },
-      { "name": "SUPPORT_RESISTANCE", "lookback": 20 }
-    ]
-  }'
-
-
-
-
-
-curl -X POST "https://api.agnic.ai/api/x402/fetch?url=https://api.agnichub.xyz/v1/custom/trading-indicators/candles&method=POST" \
-  -H "X-Agnic-Token: agnic_tok_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkaWQ6cHJpdnk6Y21qbGxsMXFsMDRiMmp3MGNvZTh2ZHQxMyIsIm1heFBlclRyYW5zYWN0aW9uIjowLjIsImRhaWx5TGltaXQiOjMsIm1vbnRobHlMaW1pdCI6MTAsIm5ldHdvcmtzIjpbImJhc2UiLCJzb2xhbmEiXSwidHlwZSI6Im44bl9hdXRvbWF0aW9uIiwiY3JlYXRlZEF0IjoxNzY2NzA2MDAxMDMzLCJ0b2tlbklkIjoidG9rZW5fMTc2NjcwNjAwMTAzM18yZjA3MmIyZCIsImlhdCI6MTc2NjcwNjAwMSwiZXhwIjoxNzk4MjQyMDAxfQ.azOkloqbeVNFUoKAdiHi6SCZBl4Mgf3hDaa2PS045co" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "coin": "BTC",
-    "exchange": "kraken",
-    "interval": "1h",
-    "limit": 5
-  }'
-
-
-
-
-curl -X POST   https://indicator-api.fly.dev/trading/v1/indicators \
-  -H "Content-Type: application/json" \
-  -d '{
-    "coin": "BTC",
-    "exchange": "kraken",
-    "interval": "1h",
-    "limit": 300,
-    "indicators": [
-      { "name": "RSI", "period": 14 },
-      { "name": "MACD", "fast": 12, "slow": 26, "signal": 9 },
-      { "name": "SMA", "period": 50 },
-      { "name": "EMA", "period": 21 },
-      { "name": "BBANDS", "period": 20, "stddev": 2 },
-      { "name": "ADX", "period": 14 },
-      { "name": "ATR", "period": 14 },
-      { "name": "OBV" },
-      { "name": "STOCH", "kPeriod": 14, "dPeriod": 3, "smoothing": 3 },
-      { "name": "STOCHRSI", "period": 14 },
-      { "name": "SUPPORT_RESISTANCE", "lookback": 20 }
-    ]
-  }'
+```sh
+npm run build
 ```
+
+Run linting:
+
+```sh
+npm run lint
+```
+
+## Configuration
+
+The app can run with default candles for local exploration. Live data and AI features require authentication through either AgnicPay OAuth or an API token.
+
+Useful environment variables:
+
+```sh
+VITE_AGNIC_AI_MERCHANT_ID=
+VITE_AGNIC_AI_PAYOUT_WALLET=
+VITE_AGNIC_AI_FEE_PERCENT=
+VITE_AGNICPAY_PAYMENT_URL=
+VITE_AGNICPAY_WEBHOOK_URL=
+```
+
+The OAuth client configuration lives in:
+
+```text
+src/wallet-widget/authService.ts
+```
+
+For another deployment, update the OAuth `clientId`, scopes, and redirect URI to match the registered application.
+
+## AI Advisor Models
+
+The advisor panel supports multiple hosted model options through Agnic AI:
+
+- Google Gemini 3 Flash Preview
+- OpenAI GPT-5.2 Chat
+- Amazon Nova 2 Lite
+- Anthropic Claude Sonnet 4.5
+
+The model receives a structured indicator snapshot instead of raw UI state. This keeps requests compact and makes responses easier to ground in the active chart.
+
+## Security Notes
+
+- Do not commit live API tokens or wallet secrets.
+- Prefer OAuth for user-facing flows.
+- Keep payment signing behind trusted AgnicPay flows.
+- Use backend proxies for privileged operations where possible.
+- Treat AI output as explanatory analysis, not as execution authority.
+
+## Roadmap Ideas
+
+- Expand local calculations for MACD, ADX, OBV, Stochastic, Stoch RSI, and support/resistance.
+- Add streaming AI responses.
+- Persist user workspaces and saved indicator presets.
+- Add backtesting views for scenario validation.
+- Add richer x402 payment telemetry and cost visibility.
+- Promote scenario cards into reusable research playbooks.
